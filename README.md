@@ -134,9 +134,30 @@ n'est nécessaire, et chaque push sur la branche de production redéploie.
 - **Node.js Version : 22.x ou plus** — la version sur laquelle le projet est
   développé et testé, déclarée dans `engines.node`.
 - **Aucune variable d'environnement n'est requise** pour la landing seule.
-- Pour ouvrir la communauté : créer une base Postgres gérée (Neon ou Vercel
-  Postgres), coller son URL dans `DATABASE_URL` côté Vercel, redéployer. Le
-  schéma se crée tout seul au premier accès.
+- Pour ouvrir la communauté : créer une base Postgres gérée, coller son URL
+  dans `DATABASE_URL` côté Vercel, redéployer. Le schéma se crée tout seul au
+  premier accès.
+
+### Choix de l'hébergeur de base
+
+**Neon** (directement, ou via le Marketplace Vercel). « Vercel Postgres »
+n'existe plus comme produit distinct : c'était déjà Neon, et les bases ont été
+migrées vers l'intégration Neon fin 2024.
+
+Le critère décisif n'est pas le quota mais la **politique d'inactivité**, pour
+un site dont le trafic sera longtemps irrégulier :
+
+- Neon met le calcul en veille après ~5 minutes d'inactivité et le **réveille
+  tout seul** à la requête suivante — seule la première requête est lente.
+- Supabase **met le projet en pause après 7 jours** sans activité, et il faut
+  le réveiller à la main depuis le tableau de bord. Une semaine creuse
+  rendrait le site inaccessible.
+
+Réserve à surveiller : le plan gratuit de Neon donne 0,5 Go par projet, et les
+photos vivent dans la base — soit de l'ordre de 2 500 photos à 190 Ko. Quand
+on s'en approchera, il faudra sortir les images vers un stockage objet
+(Vercel Blob, Cloudflare R2, ou le Storage de Supabase) ; seul `lib/db.ts` et
+la route `/photos/[id]` sont concernés.
 
 ## Direction visuelle — « Le Banc »
 
