@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { readSessionUser } from "@/lib/session";
+import { ACCOUNTS_ENABLED } from "@/lib/flags";
 import type { User } from "@/lib/db";
 
 /**
@@ -10,6 +11,8 @@ import type { User } from "@/lib/db";
  * plusieurs composants peuvent interroger la session sans requête en double.
  */
 export const getCurrentUser = cache(async (): Promise<User | undefined> => {
+  // Comptes coupés : ne pas même ouvrir la base, elle n'est pas accessible en écriture.
+  if (!ACCOUNTS_ENABLED) return undefined;
   return readSessionUser();
 });
 

@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/Button";
-import { SIGNUP_HREF, SITE_NAME } from "@/lib/content";
+import { SITE_NAME } from "@/lib/content";
+import { CTA_HREF } from "@/lib/flags";
 
 export function SiteFooter() {
   return (
@@ -10,7 +11,7 @@ export function SiteFooter() {
       <p className="mb-6 text-sm text-muted lg:mb-7.5 lg:text-base">
         Ouvrez votre dossier, engagez-la dès la première manche.
       </p>
-      <Button href={SIGNUP_HREF} full className="lg:w-auto lg:px-9">
+      <Button href={CTA_HREF} full className="lg:w-auto lg:px-9">
         Ouvrir mon dossier
       </Button>
 

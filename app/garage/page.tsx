@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { logout } from "@/app/actions/auth";
 import { requireUser } from "@/lib/dal";
+import { ACCOUNTS_ENABLED } from "@/lib/flags";
 import { SEASON, SITE_NAME } from "@/lib/content";
 
 export const metadata: Metadata = {
@@ -9,6 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function GaragePage() {
+  if (!ACCOUNTS_ENABLED) notFound();
   const user = await requireUser();
 
   return (

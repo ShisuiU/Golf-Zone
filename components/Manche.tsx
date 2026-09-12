@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/Button";
 import { PROTOCOLE, SEASON, SIGNUP_HREF } from "@/lib/content";
+import { ACCOUNTS_ENABLED } from "@/lib/flags";
 
 export function Manche() {
   return (
@@ -65,9 +66,15 @@ export function Manche() {
           <p className="text-[13px] leading-relaxed text-muted lg:text-sm">
             Récompense au vainqueur de chaque manche — nature à définir.
           </p>
-          <Button href={SIGNUP_HREF} full className="shrink-0 lg:w-auto">
-            M&apos;inscrire à la manche 01
-          </Button>
+          {ACCOUNTS_ENABLED ? (
+            <Button href={SIGNUP_HREF} full className="shrink-0 lg:w-auto">
+              M&apos;inscrire à la manche 01
+            </Button>
+          ) : (
+            <span className="shrink-0 border border-brand/40 px-5 py-3.5 text-center font-cond text-base font-bold uppercase tracking-[0.06em] text-brand">
+              Inscriptions bientôt ouvertes
+            </span>
+          )}
         </div>
       </div>
     </section>

@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/Button";
-import { SIGNUP_HREF } from "@/lib/content";
+import { CTA_HREF } from "@/lib/flags";
 
 /** Emplacement photo d'un camp du duel. Teinté à la couleur du camp. */
 function DuelSlot({ side }: { side: "a" | "b" }) {
@@ -104,7 +104,7 @@ export function Hero() {
           photos montent sur le banc, la communauté tranche.
         </p>
         <div className="mb-5 flex flex-col gap-3 lg:mb-6 lg:flex-row lg:gap-4">
-          <Button href={SIGNUP_HREF} full className="lg:w-auto">
+          <Button href={CTA_HREF} full className="lg:w-auto">
             Engager ma Golf
           </Button>
           <Button href="#roster" variant="secondary" full className="lg:w-auto">

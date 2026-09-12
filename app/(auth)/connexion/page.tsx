@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { getCurrentUser } from "@/lib/dal";
+import { ACCOUNTS_ENABLED } from "@/lib/flags";
 
 export const metadata: Metadata = {
   title: "Connexion — Zone Golf",
@@ -10,6 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ConnexionPage() {
+  if (!ACCOUNTS_ENABLED) notFound();
   if (await getCurrentUser()) redirect("/garage");
 
   return (

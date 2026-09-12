@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { COOKIE_NAME } from "@/lib/session";
+import { ACCOUNTS_ENABLED } from "@/lib/flags";
 
 /**
  * Pré-filtrage des routes membres.
@@ -13,6 +14,10 @@ import { COOKIE_NAME } from "@/lib/session";
 const MEMBER_ROUTES = ["/garage"];
 
 export function proxy(request: NextRequest) {
+  // Comptes coupés : les routes membres répondent 404, inutile de rediriger
+  // vers une page de connexion qui n'existe pas non plus.
+  if (!ACCOUNTS_ENABLED) return NextResponse.next();
+
   const { pathname } = request.nextUrl;
   const needsSession = MEMBER_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`),

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { SignupForm } from "@/components/auth/SignupForm";
 import { getCurrentUser } from "@/lib/dal";
+import { ACCOUNTS_ENABLED } from "@/lib/flags";
 
 export const metadata: Metadata = {
   title: "Ouvrir mon dossier — Zone Golf",
@@ -10,6 +11,8 @@ export const metadata: Metadata = {
 };
 
 export default async function InscriptionPage() {
+  // Comptes non ouverts sur cet environnement : la route n'existe pas.
+  if (!ACCOUNTS_ENABLED) notFound();
   // Déjà connecté : rien à créer, direction le garage.
   if (await getCurrentUser()) redirect("/garage");
 

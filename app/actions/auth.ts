@@ -10,11 +10,21 @@ import {
 } from "@/lib/db";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { createSession, destroySession } from "@/lib/session";
+import { ACCOUNTS_ENABLED } from "@/lib/flags";
 
 export type AuthState = {
   errors?: Record<string, string>;
   /** Valeurs ressaisies dans le formulaire après une erreur (jamais le mot de passe). */
   values?: { email?: string; handle?: string };
+};
+
+/**
+ * Une Server Action reste appelable par requête directe même si la page qui
+ * l'expose répond 404 : la garde doit donc être ici aussi, pas seulement
+ * dans les pages.
+ */
+const ACCOUNTS_OFF: AuthState = {
+  errors: { form: "Les comptes ne sont pas encore ouverts." },
 };
 
 const HANDLE_RE = /^[a-z0-9](?:[a-z0-9._-]{1,18}[a-z0-9])$/i;
@@ -45,6 +55,8 @@ function validateHandle(handle: string): string | undefined {
 }
 
 export async function signup(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  if (!ACCOUNTS_ENABLED) return ACCOUNTS_OFF;
+
   const email = String(formData.get("email") ?? "").trim();
   const handle = String(formData.get("handle") ?? "").trim().replace(/^@/, "");
   const password = String(formData.get("password") ?? "");
@@ -79,6 +91,8 @@ export async function signup(_prev: AuthState, formData: FormData): Promise<Auth
 }
 
 export async function login(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  if (!ACCOUNTS_ENABLED) return ACCOUNTS_OFF;
+
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const values = { email };
@@ -101,6 +115,7 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
 }
 
 export async function logout(): Promise<void> {
+  if (!ACCOUNTS_ENABLED) redirect("/");
   await destroySession();
   redirect("/");
 }

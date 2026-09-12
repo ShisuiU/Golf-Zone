@@ -9,9 +9,11 @@ n'est utilisé.
 
 ## État actuel
 
-- **Landing page** implémentée, responsive (web + mobile).
+- **Landing page** implémentée, responsive (web + mobile) — c'est ce qui est
+  destiné à être mis en ligne aujourd'hui.
 - **Comptes** : inscription, connexion, déconnexion, session persistante et
-  espace membre `/garage` protégé.
+  espace membre `/garage` protégé. **Actifs en local, coupés en production**
+  tant qu'une base durable n'est pas branchée (voir Déploiement).
 - Pas encore d'upload de photos ni de votes : le feed de la landing et le
   garage affichent des contenus d'exemple ou un état vide assumé.
 
@@ -89,6 +91,42 @@ base gérée ne touche que ce module.
 
 Base locale dans `.data/` (ignorée par git), chemin configurable via
 `ZONE_GOLF_DB`.
+
+### Interrupteur
+
+`ZONE_GOLF_ACCOUNTS` (voir `.env.example`) commande les comptes :
+
+- non défini : actifs en développement, coupés en production ;
+- `on` / `off` : force l'état.
+
+Coupés, `/inscription`, `/connexion` et `/garage` répondent 404, les Server
+Actions refusent les appels directs, les appels à l'action de la landing
+pointent vers la section « manche » au lieu d'une route inexistante, aucune
+connexion SQLite n'est ouverte, et la landing redevient prérendue
+statiquement.
+
+Cette valeur est lue à la construction pour les pages prérendues : après
+l'avoir changée, il faut **reconstruire / redéployer**.
+
+## Déploiement (Vercel)
+
+Le dépôt se connecte sur [vercel.com/new](https://vercel.com/new) : Next.js
+est détecté automatiquement, aucune commande ni aucun fichier `vercel.json`
+n'est nécessaire, et chaque push sur la branche de production redéploie.
+
+À vérifier dans les réglages du projet :
+
+- **Node.js Version : 22.x ou plus.** `package.json` déclare
+  `engines.node >= 22.5`, car le module `node:sqlite` n'existe pas avant —
+  sur Node 20 le build échouerait à l'import.
+- **Aucune variable d'environnement n'est requise** pour mettre la landing en
+  ligne. Ne pas définir `ZONE_GOLF_ACCOUNTS=on` sans base durable : les
+  inscriptions seraient perdues d'une requête à l'autre.
+
+Pour ouvrir les comptes en ligne plus tard : brancher une base gérée
+(Postgres, par exemple Neon ou Vercel Postgres) en réécrivant `lib/db.ts`,
+mettre l'URL de connexion en variable d'environnement côté Vercel, puis
+passer `ZONE_GOLF_ACCOUNTS=on` et redéployer.
 
 ## Direction visuelle — « Le Banc »
 

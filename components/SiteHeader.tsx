@@ -4,11 +4,11 @@ import {
   MEMBER_HREF,
   NAV_LINKS,
   SEASON,
-  SIGNUP_HREF,
   SITE_NAME,
   TICKER_ITEMS,
 } from "@/lib/content";
 import { getCurrentUser } from "@/lib/dal";
+import { ACCOUNTS_ENABLED, CTA_HREF } from "@/lib/flags";
 
 /**
  * Nav + bandeau HUD.
@@ -20,9 +20,11 @@ import { getCurrentUser } from "@/lib/dal";
 export async function SiteHeader() {
   const user = await getCurrentUser();
 
+  // Sans comptes, le bouton principal renvoie à l'explication des manches
+  // plutôt que vers une inscription qui n'existe pas encore en ligne.
   const primary = user
     ? { href: MEMBER_HREF, label: "Mon garage" }
-    : { href: SIGNUP_HREF, label: "Engager ma Golf" };
+    : { href: CTA_HREF, label: "Engager ma Golf" };
 
   return (
     <header className="relative">
@@ -48,7 +50,7 @@ export async function SiteHeader() {
               {link.label}
             </a>
           ))}
-          {user ? null : (
+          {user || !ACCOUNTS_ENABLED ? null : (
             <Link
               href={LOGIN_HREF}
               className="font-cond text-base font-semibold uppercase tracking-[0.07em] text-body hover:text-ink"
@@ -97,7 +99,7 @@ export async function SiteHeader() {
                 {link.label}
               </a>
             ))}
-            {user ? null : (
+            {user || !ACCOUNTS_ENABLED ? null : (
               <Link
                 href={LOGIN_HREF}
                 className="flex min-h-[48px] items-center px-4 font-cond text-base font-semibold uppercase tracking-[0.06em] text-body hover:text-ink"
