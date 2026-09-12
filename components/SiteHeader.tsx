@@ -1,12 +1,29 @@
-import { NAV_LINKS, SEASON, SIGNUP_HREF, SITE_NAME, TICKER_ITEMS } from "@/lib/content";
+import Link from "next/link";
+import {
+  LOGIN_HREF,
+  MEMBER_HREF,
+  NAV_LINKS,
+  SEASON,
+  SIGNUP_HREF,
+  SITE_NAME,
+  TICKER_ITEMS,
+} from "@/lib/content";
+import { getCurrentUser } from "@/lib/dal";
 
 /**
  * Nav + bandeau HUD.
  *
  * Le menu mobile est un <details> : accessible au clavier et fonctionnel
- * sans JavaScript, donc l'en-tête reste un composant serveur.
+ * sans JavaScript, donc l'en-tête reste un composant serveur — ce qui lui
+ * permet aussi de lire la session pour adapter les liens.
  */
-export function SiteHeader() {
+export async function SiteHeader() {
+  const user = await getCurrentUser();
+
+  const primary = user
+    ? { href: MEMBER_HREF, label: "Mon garage" }
+    : { href: SIGNUP_HREF, label: "Engager ma Golf" };
+
   return (
     <header className="relative">
       <div className="flex items-center justify-between gap-4 border-b border-hairline px-5 py-4 lg:px-16 lg:py-6">
@@ -31,12 +48,20 @@ export function SiteHeader() {
               {link.label}
             </a>
           ))}
-          <a
-            href={SIGNUP_HREF}
+          {user ? null : (
+            <Link
+              href={LOGIN_HREF}
+              className="font-cond text-base font-semibold uppercase tracking-[0.07em] text-body hover:text-ink"
+            >
+              Connexion
+            </Link>
+          )}
+          <Link
+            href={primary.href}
             className="bevel inline-flex min-h-[46px] items-center bg-brand px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-graphite hover:text-graphite"
           >
-            Engager ma Golf
-          </a>
+            {primary.label}
+          </Link>
         </nav>
 
         {/* Mobile */}
@@ -72,12 +97,20 @@ export function SiteHeader() {
                 {link.label}
               </a>
             ))}
-            <a
-              href={SIGNUP_HREF}
+            {user ? null : (
+              <Link
+                href={LOGIN_HREF}
+                className="flex min-h-[48px] items-center px-4 font-cond text-base font-semibold uppercase tracking-[0.06em] text-body hover:text-ink"
+              >
+                Connexion
+              </Link>
+            )}
+            <Link
+              href={primary.href}
               className="mt-2 flex min-h-[48px] items-center justify-center bg-brand px-4 font-cond text-base font-bold uppercase tracking-[0.06em] text-graphite hover:text-graphite"
             >
-              Engager ma Golf
-            </a>
+              {primary.label}
+            </Link>
           </nav>
         </details>
       </div>
@@ -95,16 +128,13 @@ export function SiteHeader() {
             </span>
           </span>
           {TICKER_ITEMS.map((item) => (
-            <span
-              key={item}
-              className="hidden font-mono text-[11px] text-faint lg:inline"
-            >
+            <span key={item} className="hidden font-mono text-[11px] text-faint lg:inline">
               {item}
             </span>
           ))}
         </div>
         <span className="hidden font-mono text-[11px] text-faint lg:inline">
-          Communauté indépendante
+          {user ? `Connecté · @${user.handle}` : "Communauté indépendante"}
         </span>
       </div>
     </header>

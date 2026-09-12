@@ -1,8 +1,10 @@
+import Link from "next/link";
 import type { ComponentProps } from "react";
 
 type Variant = "primary" | "secondary";
 
-type Props = ComponentProps<"a"> & {
+type Props = Omit<ComponentProps<typeof Link>, "href"> & {
+  href: string;
   variant?: Variant;
   full?: boolean;
 };
@@ -14,15 +16,23 @@ const base =
 const variants: Record<Variant, string> = {
   // Fond plein : le coin biseauté est sûr ici, il n'y a pas de bordure à couper.
   primary: "bevel bg-brand text-graphite hover:text-graphite",
-  secondary:
-    "bg-surface text-ink hover:text-ink border border-hairline-strong",
+  secondary: "bg-surface text-ink hover:text-ink border border-hairline-strong",
 };
 
-export function Button({ variant = "primary", full, className = "", ...rest }: Props) {
-  return (
-    <a
-      className={`${base} ${variants[variant]} ${full ? "w-full" : ""} ${className}`}
-      {...rest}
-    />
-  );
+export function Button({
+  href,
+  variant = "primary",
+  full,
+  className = "",
+  ...rest
+}: Props) {
+  const classes = `${base} ${variants[variant]} ${full ? "w-full" : ""} ${className}`;
+
+  // Les ancres de la même page restent de simples <a> : Link n'apporte rien
+  // pour un défilement interne et journaliserait une navigation inutile.
+  if (href.startsWith("#")) {
+    return <a href={href} className={classes} {...rest} />;
+  }
+
+  return <Link href={href} className={classes} {...rest} />;
 }

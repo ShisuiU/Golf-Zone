@@ -6,20 +6,17 @@
  * (un `RosterEntry` deviendra une ligne de table, `SEASON.label` une saison).
  */
 
-export const SITE_NAME = "Mein Golf";
+export const SITE_NAME = "Zone Golf";
 export const SITE_TAGLINE = "le banc d'essai des Golf";
 export const SEASON = { label: "Saison 01", short: "S01" };
 
 /** Aucune manche n'a encore été jouée : rien ici ne doit afficher de résultat. */
 export const SEASON_OPEN = false;
 
-/**
- * Cible des appels à l'action.
- * À remplacer par la vraie page d'inscription quand les comptes existeront :
- * tant qu'il n'y a pas de backend, les CTA renvoient vers l'explication du
- * fonctionnement plutôt que vers un formulaire qui ne mène nulle part.
- */
-export const SIGNUP_HREF = "#manche";
+/** Cibles des appels à l'action. */
+export const SIGNUP_HREF = "/inscription";
+export const LOGIN_HREF = "/connexion";
+export const MEMBER_HREF = "/garage";
 
 export const NAV_LINKS = [
   { label: "Le banc", href: "#le-banc" },
