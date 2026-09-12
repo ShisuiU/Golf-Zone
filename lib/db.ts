@@ -40,6 +40,12 @@ function getPool(): Pool {
     // Chaque instance serverless ouvre son propre pool : on reste modeste, et
     // c'est le pooler de Neon qui absorbe la concurrence.
     max: 5,
+    // Neon endort son calcul après quelques minutes ; le réveil peut prendre
+    // plusieurs secondes. Sans plafond, une page resterait bloquée à attendre
+    // (mesuré : plus de 30 s sur une base endormie). Ces limites laissent le
+    // temps d'un réveil normal, mais bornent le pire cas.
+    connectionTimeoutMillis: 10_000,
+    query_timeout: 10_000,
   });
   return pool;
 }

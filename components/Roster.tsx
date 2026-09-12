@@ -71,15 +71,29 @@ function SampleCard({ entry }: { entry: RosterEntry }) {
   );
 }
 
+/** Au-delà, on préfère afficher les exemples que faire patienter le visiteur. */
+const FEED_TIMEOUT_MS = 2_500;
+
 /**
- * Une base injoignable ne doit pas emporter toute la page : Neon met le calcul
- * en veille, et un réveil peut échouer ou expirer. Dans ce cas la landing
- * retombe sur les exemples plutôt que de renvoyer une erreur 500.
+ * Une base lente ou injoignable ne doit pas retarder la landing : Neon endort
+ * son calcul, et le réveil peut dépasser la dizaine de secondes. Le feed
+ * abandonne donc vite et retombe sur les exemples — les pages membres, elles,
+ * laissent le temps au réveil, puisque le visiteur y a cliqué pour agir.
  */
 async function safeRecentDossiers(): Promise<FeedEntry[]> {
   if (!LIVE_FEED) return [];
+
+  const timeout = new Promise<"timeout">((resolve) =>
+    setTimeout(() => resolve("timeout"), FEED_TIMEOUT_MS),
+  );
+
   try {
-    return await listRecentDossiers(4);
+    const result = await Promise.race([listRecentDossiers(4), timeout]);
+    if (result === "timeout") {
+      console.warn("Feed : base trop lente, repli sur les exemples.");
+      return [];
+    }
+    return result;
   } catch (error) {
     console.error("Feed indisponible, repli sur les exemples :", error);
     return [];
