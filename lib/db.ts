@@ -27,10 +27,18 @@ function getPool(): Pool {
   // Le rechargement à chaud réévalue ce module : garder le pool sur globalThis
   // évite d'ouvrir une nouvelle grappe de connexions à chaque édition.
   const store = globalThis as typeof globalThis & { __zoneGolfPool?: Pool };
+  const isLocal = /localhost|127\.0\.0\.1/.test(DATABASE_URL);
   pool ??= store.__zoneGolfPool ??= new Pool({
     connectionString: DATABASE_URL,
-    // Les bases gérées (Neon, Vercel Postgres) imposent TLS ; en local, non.
-    ssl: /localhost|127\.0\.0\.1/.test(DATABASE_URL) ? undefined : { rejectUnauthorized: true },
+    // Les bases gérées imposent TLS ; en local, non.
+    ssl: isLocal ? undefined : { rejectUnauthorized: true },
+    // Neon réclame `channel_binding=require` dans son URL, mais pg n'utilise
+    // SCRAM-SHA-256-PLUS que sur demande explicite : sans cette option, le
+    // paramètre serait ignoré et l'authentification perdrait sa protection
+    // contre l'interception.
+    enableChannelBinding: !isLocal,
+    // Chaque instance serverless ouvre son propre pool : on reste modeste, et
+    // c'est le pooler de Neon qui absorbe la concurrence.
     max: 5,
   });
   return pool;

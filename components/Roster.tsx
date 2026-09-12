@@ -71,8 +71,23 @@ function SampleCard({ entry }: { entry: RosterEntry }) {
   );
 }
 
+/**
+ * Une base injoignable ne doit pas emporter toute la page : Neon met le calcul
+ * en veille, et un réveil peut échouer ou expirer. Dans ce cas la landing
+ * retombe sur les exemples plutôt que de renvoyer une erreur 500.
+ */
+async function safeRecentDossiers(): Promise<FeedEntry[]> {
+  if (!LIVE_FEED) return [];
+  try {
+    return await listRecentDossiers(4);
+  } catch (error) {
+    console.error("Feed indisponible, repli sur les exemples :", error);
+    return [];
+  }
+}
+
 export async function Roster() {
-  const live = LIVE_FEED ? await listRecentDossiers(4) : [];
+  const live = await safeRecentDossiers();
   // Tant que personne n'a déposé, on montre les exemples plutôt qu'une grille
   // vide — mais dès le premier dossier réel, ils disparaissent.
   const showSamples = live.length === 0;
