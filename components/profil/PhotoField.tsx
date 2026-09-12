@@ -43,7 +43,7 @@ function formatSize(bytes: number): string {
     : `${Math.round(bytes / 1024)} Ko`;
 }
 
-export function PhotoField({ error }: { error?: string }) {
+export function PhotoField({ error, optional }: { error?: string; optional?: boolean }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string>();
   const [note, setNote] = useState<string>();
@@ -89,7 +89,7 @@ export function PhotoField({ error }: { error?: string }) {
         htmlFor="photo"
         className="font-mono text-[10px] tracking-[0.1em] uppercase text-muted"
       >
-        Photo
+        {optional ? "Photo (facultatif)" : "Photo"}
       </label>
 
       {preview ? (

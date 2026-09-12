@@ -7,12 +7,11 @@
  */
 
 export const SITE_NAME = "Zone Golf";
-export const SITE_TAGLINE = "la communauté photo des Golf";
+export const SITE_TAGLINE = "la communauté des propriétaires de Golf";
 
 export const NAV_LINKS = [
-  { label: "Le fil", href: "#fil" },
-  { label: "Comment ça marche", href: "#comment" },
-  { label: "Duels", href: "#duels" },
+  { label: "Le fil", href: "/" },
+  { label: "Duels", href: "/duels" },
 ];
 
 /** Cibles des appels à l'action. */

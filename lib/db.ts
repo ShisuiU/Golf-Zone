@@ -89,6 +89,26 @@ function ensureSchema(): Promise<void> {
         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
       );
       CREATE INDEX IF NOT EXISTS photos_dossier ON photos (dossier_id, created_at DESC);
+
+      -- Une question n'a ni photo ni génération : les deux deviennent optionnels.
+      ALTER TABLE dossiers ALTER COLUMN model DROP NOT NULL;
+
+      -- Un membre ne peut aimer qu'une fois : la clé primaire s'en charge.
+      CREATE TABLE IF NOT EXISTS likes (
+        dossier_id INTEGER NOT NULL REFERENCES dossiers(id) ON DELETE CASCADE,
+        user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        PRIMARY KEY (dossier_id, user_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS comments (
+        id         SERIAL PRIMARY KEY,
+        dossier_id INTEGER NOT NULL REFERENCES dossiers(id) ON DELETE CASCADE,
+        user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        body       TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS comments_dossier ON comments (dossier_id, created_at);
     `);
   })();
   return schemaReady;
@@ -185,40 +205,53 @@ export async function deleteSessionByHash(tokenHash: string): Promise<void> {
  * code parle SQL ici.
  */
 
-export type FeedEntry = {
+export type Comment = {
   id: number;
   handle: string;
-  model: string;
-  caption: string;
-  photoId: number | null;
+  body: string;
   createdAt: Date;
 };
 
+export type FeedEntry = {
+  id: number;
+  handle: string;
+  model: string | null;
+  caption: string;
+  photoId: number | null;
+  createdAt: Date;
+  likeCount: number;
+  likedByMe: boolean;
+  comments: Comment[];
+};
+
 /**
- * Crée une publication et sa photo dans une transaction : une publication sans
- * image n'aurait rien à montrer dans le fil.
+ * Crée une publication. La photo est facultative : une question se poste sans
+ * image. Quand il y en a une, les deux écritures tiennent dans une
+ * transaction pour éviter une publication à l'image manquante.
  */
 export async function createPost(input: {
   userId: number;
-  model: string;
+  model: string | null;
   caption: string;
-  photo: { data: Buffer; mime: string };
+  photo?: { data: Buffer; mime: string };
 }): Promise<number> {
   await ensureSchema();
   const client = await getPool().connect();
   try {
     await client.query("BEGIN");
-    const dossier = await client.query(
+    const post = await client.query(
       "INSERT INTO dossiers (user_id, model, caption) VALUES ($1, $2, $3) RETURNING id",
       [input.userId, input.model, input.caption],
     );
-    const dossierId = dossier.rows[0].id as number;
-    await client.query(
-      "INSERT INTO photos (dossier_id, data, mime, byte_size) VALUES ($1, $2, $3, $4)",
-      [dossierId, input.photo.data, input.photo.mime, input.photo.data.byteLength],
-    );
+    const postId = post.rows[0].id as number;
+    if (input.photo) {
+      await client.query(
+        "INSERT INTO photos (dossier_id, data, mime, byte_size) VALUES ($1, $2, $3, $4)",
+        [postId, input.photo.data, input.photo.mime, input.photo.data.byteLength],
+      );
+    }
     await client.query("COMMIT");
-    return dossierId;
+    return postId;
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
@@ -227,8 +260,14 @@ export async function createPost(input: {
   }
 }
 
-/** Dernières publications, avec leur photo la plus récente. */
-export async function listRecentPosts(limit = 4): Promise<FeedEntry[]> {
+/**
+ * Le fil, en une seule requête.
+ *
+ * Compteurs de likes et commentaires sont agrégés côté base : la base est à
+ * Francfort et le serveur à Paris, donc chaque aller-retour supplémentaire se
+ * paierait sur chaque affichage du fil.
+ */
+async function listPosts(viewerId: number | null, where: string, params: unknown[]) {
   return query<FeedEntry>(
     `SELECT d.id,
             u.handle,
@@ -237,27 +276,43 @@ export async function listRecentPosts(limit = 4): Promise<FeedEntry[]> {
             d.created_at AS "createdAt",
             (SELECT p.id FROM photos p
               WHERE p.dossier_id = d.id
-              ORDER BY p.created_at DESC LIMIT 1) AS "photoId"
+              ORDER BY p.created_at DESC LIMIT 1) AS "photoId",
+            (SELECT count(*)::int FROM likes l WHERE l.dossier_id = d.id) AS "likeCount",
+            EXISTS (
+              SELECT 1 FROM likes l
+               WHERE l.dossier_id = d.id AND l.user_id = $1
+            ) AS "likedByMe",
+            COALESCE((
+              SELECT json_agg(c ORDER BY c."createdAt")
+                FROM (
+                  SELECT cm.id,
+                         cu.handle,
+                         cm.body,
+                         cm.created_at AS "createdAt"
+                    FROM comments cm
+                    JOIN users cu ON cu.id = cm.user_id
+                   WHERE cm.dossier_id = d.id
+                   ORDER BY cm.created_at
+                ) c
+            ), '[]'::json) AS comments
        FROM dossiers d
        JOIN users u ON u.id = d.user_id
+      ${where}
       ORDER BY d.created_at DESC
-      LIMIT $1`,
-    [limit],
+      LIMIT 50`,
+    // 0 ne correspond à aucun identifiant : un visiteur non connecté n'aime rien.
+    [viewerId ?? 0, ...params],
   );
 }
 
+/** Fil public, le plus récent d'abord. */
+export async function listFeed(viewerId: number | null): Promise<FeedEntry[]> {
+  return listPosts(viewerId, "", []);
+}
+
+/** Publications d'un membre. */
 export async function listPostsOfUser(userId: number): Promise<FeedEntry[]> {
-  return query<FeedEntry>(
-    `SELECT d.id, u.handle, d.model, d.caption, d.created_at AS "createdAt",
-            (SELECT p.id FROM photos p
-              WHERE p.dossier_id = d.id
-              ORDER BY p.created_at DESC LIMIT 1) AS "photoId"
-       FROM dossiers d
-       JOIN users u ON u.id = d.user_id
-      WHERE d.user_id = $1
-      ORDER BY d.created_at DESC`,
-    [userId],
-  );
+  return listPosts(userId, "WHERE d.user_id = $2", [userId]);
 }
 
 export async function countPosts(): Promise<number> {
@@ -272,7 +327,46 @@ export async function findPhoto(id: number): Promise<StoredPhoto | undefined> {
   return rows[0];
 }
 
-/** Un membre ne peut supprimer que ses propres publications. */
+/** Aime ou retire son like. Renvoie l'état après coup. */
+export async function toggleLike(postId: number, userId: number): Promise<boolean> {
+  const removed = await query(
+    "DELETE FROM likes WHERE dossier_id = $1 AND user_id = $2 RETURNING dossier_id",
+    [postId, userId],
+  );
+  if (removed.length > 0) return false;
+
+  // ON CONFLICT : deux clics simultanés ne doivent pas lever d'erreur.
+  await query(
+    "INSERT INTO likes (dossier_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+    [postId, userId],
+  );
+  return true;
+}
+
+export async function addComment(
+  postId: number,
+  userId: number,
+  body: string,
+): Promise<void> {
+  await query("INSERT INTO comments (dossier_id, user_id, body) VALUES ($1, $2, $3)", [
+    postId,
+    userId,
+    body,
+  ]);
+}
+
+/** Un membre ne peut supprimer que son propre commentaire. */
+export async function deleteCommentOwnedBy(
+  commentId: number,
+  userId: number,
+): Promise<boolean> {
+  const rows = await query(
+    "DELETE FROM comments WHERE id = $1 AND user_id = $2 RETURNING id",
+    [commentId, userId],
+  );
+  return rows.length > 0;
+}
+
 export async function deletePostOwnedBy(postId: number, userId: number): Promise<boolean> {
   const rows = await query("DELETE FROM dossiers WHERE id = $1 AND user_id = $2 RETURNING id", [
     postId,

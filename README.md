@@ -9,14 +9,13 @@ n'est utilisé.
 
 ## État actuel
 
-- **Landing page** implémentée, responsive (web + mobile) — c'est ce qui est
-  destiné à être mis en ligne aujourd'hui.
-- **Comptes** : inscription, connexion, déconnexion, session persistante et
-  espace membre `/garage` protégé.
-- **Dépôt de photos** : un membre publie une Golf (photo + génération +
-  légende) depuis son garage, et le feed de la landing affiche les dossiers
-  réels dès le premier dépôt.
-- Pas encore de votes ni de manches 1v1.
+- **Fil social** en page d'accueil : publications, likes, commentaires. Un
+  membre poste une photo *ou* une simple question — beaucoup d'échanges
+  n'auront pas d'image.
+- **Comptes** : inscription, connexion, déconnexion, session persistante,
+  profil `/profil`.
+- **Duels** sur leur propre page `/duels`, annoncés comme non ouverts. Le site
+  est d'abord un espace de partage ; la compétition vient en plus.
 
 Tout cela s'active avec `DATABASE_URL`. Sans base configurée, le site tourne
 en **mode vitrine** : la landing s'affiche avec des dossiers d'exemple, et rien
@@ -49,7 +48,8 @@ Autres commandes : `npm run build`, `npm run start`, `npm run lint`.
 ```
 app/
   globals.css      tokens de design + utilitaires (grille, livrée, biseaux)
-  page.tsx         composition de la landing
+  page.tsx         le fil (page d'accueil)
+  duels/           présentation des duels, page dédiée
   garage/          espace membre : dépôt et liste des dossiers
   photos/[id]/     sert une photo stockée en base
   actions/         Server Actions (auth.ts, dossier.ts)
@@ -102,6 +102,20 @@ force ce mode même avec une base (maintenance).
 
 Ces valeurs sont lues à la construction pour les pages prérendues : après les
 avoir changées, il faut **reconstruire / redéployer**.
+
+## Le fil
+
+Une seule requête ramène les publications, leurs compteurs de likes et leurs
+commentaires (`listFeed`). La base est à Francfort et le serveur à Paris :
+chaque aller-retour supplémentaire se paierait à chaque affichage.
+
+Le bouton « j'aime » met à jour le compteur **avant** la réponse du serveur
+(`useOptimistic`) — un like qui attend un aller-retour ne donne pas
+l'impression d'un réseau social. Un membre ne peut aimer qu'une fois : c'est
+la clé primaire `(dossier_id, user_id)` qui l'impose, pas le code.
+
+Un visiteur non connecté voit tout le fil ; ses clics sur « j'aime » ou
+« commenter » l'amènent à l'inscription.
 
 ## Photos
 

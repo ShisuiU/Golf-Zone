@@ -22,22 +22,22 @@ export async function SiteHeader() {
   return (
     <header className="relative">
       <div className="flex items-center justify-between gap-4 border-b border-hairline px-5 py-4 lg:px-16 lg:py-6">
-        <div className="flex items-center gap-3">
-          <span className="font-impact text-lg tracking-[0.01em] lg:text-[23px]">
+        <Link href="/" className="flex items-center gap-3 hover:text-ink">
+          <span className="font-impact text-lg tracking-[0.01em] text-ink lg:text-[23px]">
             {SITE_NAME.toUpperCase()}
           </span>
-        </div>
+        </Link>
 
         {/* Desktop */}
         <nav className="hidden items-center gap-9 lg:flex">
           {NAV_LINKS.map((link) => (
-            <a
+            <Link
               key={link.href}
               href={link.href}
               className="font-cond text-base font-semibold uppercase tracking-[0.07em] text-body hover:text-ink"
             >
               {link.label}
-            </a>
+            </Link>
           ))}
           {user || !ACCOUNTS_ENABLED ? null : (
             <Link
@@ -80,13 +80,13 @@ export async function SiteHeader() {
           </summary>
           <nav className="absolute right-0 z-20 mt-3 flex w-60 flex-col border border-hairline bg-surface p-2">
             {NAV_LINKS.map((link) => (
-              <a
+              <Link
                 key={link.href}
                 href={link.href}
                 className="flex min-h-[48px] items-center px-4 font-cond text-base font-semibold uppercase tracking-[0.06em] text-body hover:text-ink"
               >
                 {link.label}
-              </a>
+              </Link>
             ))}
             {user || !ACCOUNTS_ENABLED ? null : (
               <Link
@@ -114,9 +114,12 @@ export async function SiteHeader() {
               aria-hidden="true"
               className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand shadow-[0_0_9px_rgba(249,115,22,0.9)]"
             />
-            <span className="font-mono text-[10px] tracking-[0.05em] text-brand lg:text-[11px]">
+            <Link
+              href="/duels"
+              className="font-mono text-[10px] tracking-[0.05em] text-brand hover:text-brand-soft lg:text-[11px]"
+            >
               Duels bientôt disponibles
-            </span>
+            </Link>
           </span>
           {TICKER_ITEMS.map((item) => (
             <span key={item} className="hidden font-mono text-[11px] text-faint lg:inline">

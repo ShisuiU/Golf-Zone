@@ -30,4 +30,4 @@ export const LIVE_FEED = ACCOUNTS_ENABLED;
  * Cible des appels à l'action : l'inscription quand les comptes sont ouverts,
  * sinon la section qui explique le fonctionnement — jamais une route en 404.
  */
-export const CTA_HREF = ACCOUNTS_ENABLED ? "/inscription" : "#comment";
+export const CTA_HREF = "/inscription";
