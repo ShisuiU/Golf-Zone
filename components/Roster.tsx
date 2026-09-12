@@ -1,4 +1,7 @@
+import Image from "next/image";
 import { ROSTER, type RosterEntry } from "@/lib/content";
+import { listRecentDossiers, type FeedEntry } from "@/lib/db";
+import { LIVE_FEED } from "@/lib/flags";
 
 function HeartIcon() {
   return (
@@ -11,16 +14,47 @@ function HeartIcon() {
   );
 }
 
-function RosterCard({ entry }: { entry: RosterEntry }) {
+/** Carte d'un dossier réellement déposé par un membre. */
+function LiveCard({ entry }: { entry: FeedEntry }) {
   return (
     <article className="border border-hairline bg-surface transition-colors duration-150 hover:border-brand/55">
-      {/* Emplacement photo : le feed n'est pas encore alimenté. */}
+      {entry.photoId ? (
+        <Image
+          src={`/photos/${entry.photoId}`}
+          alt={`Golf ${entry.model} de @${entry.handle}`}
+          width={400}
+          height={300}
+          className="h-44 w-full object-cover lg:h-[152px]"
+          unoptimized
+        />
+      ) : (
+        <div className="h-44 bg-[linear-gradient(150deg,#2a2f33,#15171a)] lg:h-[152px]" />
+      )}
+      <div className="p-4">
+        <h3 className="mb-2 font-cond text-[17px] font-semibold tracking-[0.03em]">
+          @{entry.handle}
+        </h3>
+        <p className="mb-2 font-mono text-[10px] tracking-[0.05em] text-faint uppercase">
+          Dossier #{entry.id} · {entry.model}
+        </p>
+        {entry.caption ? (
+          <p className="text-[13px] leading-relaxed text-muted">
+            &laquo;&nbsp;{entry.caption}&nbsp;&raquo;
+          </p>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
+/** Carte d'exemple, utilisée tant qu'aucune base n'est branchée. */
+function SampleCard({ entry }: { entry: RosterEntry }) {
+  return (
+    <article className="border border-hairline bg-surface transition-colors duration-150 hover:border-brand/55">
       <div className="h-44 bg-[linear-gradient(150deg,#2a2f33,#15171a)] lg:h-[152px]" />
       <div className="p-4">
         <div className="mb-2 flex items-center justify-between gap-2">
-          <h3 className="font-cond text-[17px] font-semibold tracking-[0.03em]">
-            {entry.handle}
-          </h3>
+          <h3 className="font-cond text-[17px] font-semibold tracking-[0.03em]">{entry.handle}</h3>
           <span className="flex items-center gap-1.5 text-brand">
             <HeartIcon />
             <span className="font-mono text-[11px]">{entry.hype}</span>
@@ -37,7 +71,12 @@ function RosterCard({ entry }: { entry: RosterEntry }) {
   );
 }
 
-export function Roster() {
+export async function Roster() {
+  const live = LIVE_FEED ? await listRecentDossiers(4) : [];
+  // Tant que personne n'a déposé, on montre les exemples plutôt qu'une grille
+  // vide — mais dès le premier dossier réel, ils disparaissent.
+  const showSamples = live.length === 0;
+
   return (
     <section
       id="roster"
@@ -53,13 +92,15 @@ export function Roster() {
         </a>
       </div>
       <p className="mb-6 text-sm text-muted lg:mb-10 lg:text-[15px]">
-        Les dossiers les plus récents déposés par la communauté.
+        {showSamples
+          ? "Exemples de dossiers, le temps que la communauté remplisse le banc."
+          : "Les dossiers les plus récents déposés par la communauté."}
       </p>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
-        {ROSTER.map((entry) => (
-          <RosterCard key={entry.dossier} entry={entry} />
-        ))}
+        {showSamples
+          ? ROSTER.map((entry) => <SampleCard key={entry.dossier} entry={entry} />)
+          : live.map((entry) => <LiveCard key={entry.id} entry={entry} />)}
       </div>
 
       <a

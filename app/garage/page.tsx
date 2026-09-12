@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { logout } from "@/app/actions/auth";
+import { removeDossier } from "@/app/actions/dossier";
+import { DossierForm } from "@/components/garage/DossierForm";
 import { requireUser } from "@/lib/dal";
+import { listDossiersOfUser } from "@/lib/db";
 import { ACCOUNTS_ENABLED } from "@/lib/flags";
 import { SEASON, SITE_NAME } from "@/lib/content";
 
@@ -13,6 +17,7 @@ export const metadata: Metadata = {
 export default async function GaragePage() {
   if (!ACCOUNTS_ENABLED) notFound();
   const user = await requireUser();
+  const dossiers = await listDossiersOfUser(user.id);
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -41,30 +46,71 @@ export default async function GaragePage() {
         <h1 className="mb-2 font-impact text-[30px] lg:text-[42px]">Mon garage</h1>
         <p className="mb-10 text-[15px] leading-relaxed text-body">
           Bienvenue <span className="font-cond font-semibold text-ink">@{user.handle}</span>.
-          Votre compte est ouvert : il portera vos dossiers et vos engagements en manche.
+          Déposez vos Golf ici : elles apparaissent aussitôt sur le banc.
         </p>
 
-        {/* Rien à lister : l'upload de photos n'existe pas encore. Le dire
-            plutôt que d'inventer un garage rempli. */}
-        <section className="panel p-6 lg:p-8">
-          <h2 className="mb-2 font-cond text-xl font-semibold uppercase tracking-[0.03em]">
-            Aucun dossier pour l&apos;instant
+        <section className="panel mb-10 p-6 lg:p-8">
+          <h2 className="mb-6 font-cond text-xl font-semibold uppercase tracking-[0.03em]">
+            Déposer une Golf
           </h2>
-          <p className="mb-6 text-sm leading-relaxed text-muted">
-            Le dépôt de photos est la prochaine étape du chantier. Dès qu&apos;il sera
-            en place, vos Golf apparaîtront ici, prêtes à être engagées.
-          </p>
-          <div className="flex flex-col gap-3 border border-dashed border-hairline-strong px-4 py-8 text-center">
-            <span className="font-mono text-[10px] tracking-[0.1em] uppercase text-faint">
-              Emplacement dossier
-            </span>
-            <span className="font-cond text-lg font-semibold uppercase tracking-[0.04em] text-faint">
-              Dépôt bientôt ouvert
-            </span>
-          </div>
+          <DossierForm />
         </section>
 
-        <p className="mt-8 text-sm text-muted">
+        <section>
+          <h2 className="mb-5 font-cond text-xl font-semibold uppercase tracking-[0.03em]">
+            Mes dossiers{" "}
+            <span className="font-mono text-sm text-faint">({dossiers.length})</span>
+          </h2>
+
+          {dossiers.length === 0 ? (
+            <div className="flex flex-col gap-3 border border-dashed border-hairline-strong px-4 py-10 text-center">
+              <span className="font-mono text-[10px] tracking-[0.1em] uppercase text-faint">
+                Aucun dossier
+              </span>
+              <span className="font-cond text-lg font-semibold uppercase tracking-[0.04em] text-faint">
+                Votre première photo lancera le vôtre
+              </span>
+            </div>
+          ) : (
+            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {dossiers.map((d) => (
+                <li key={d.id} className="border border-hairline bg-surface">
+                  {d.photoId ? (
+                    <Image
+                      src={`/photos/${d.photoId}`}
+                      alt={`Golf ${d.model} de @${d.handle}`}
+                      width={400}
+                      height={300}
+                      className="h-44 w-full object-cover"
+                      unoptimized
+                    />
+                  ) : null}
+                  <div className="p-4">
+                    <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.05em] text-faint">
+                      Dossier #{d.id} · {d.model}
+                    </p>
+                    {d.caption ? (
+                      <p className="mb-3 text-[13px] leading-relaxed text-muted">
+                        &laquo;&nbsp;{d.caption}&nbsp;&raquo;
+                      </p>
+                    ) : null}
+                    <form action={removeDossier}>
+                      <input type="hidden" name="id" value={d.id} />
+                      <button
+                        type="submit"
+                        className="min-h-[40px] cursor-pointer font-mono text-[11px] uppercase tracking-[0.05em] text-faint hover:text-brand"
+                      >
+                        Retirer du banc
+                      </button>
+                    </form>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <p className="mt-10 text-sm text-muted">
           <Link href="/" className="underline">
             Retour au banc
           </Link>

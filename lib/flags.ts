@@ -1,26 +1,33 @@
 /**
  * Interrupteurs de fonctionnalités.
  *
- * Les comptes reposent sur un fichier SQLite local, qui ne survit pas à un
- * hébergement au système de fichiers éphémère (Vercel & co) : chaque instance
- * aurait sa propre base, et les inscriptions disparaîtraient. Ils sont donc
- * coupés en production tant qu'une base gérée n'est pas branchée.
+ * Tout ce qui est communautaire (comptes, dépôt de dossiers, feed réel) a
+ * besoin d'une base de données. Sans `DATABASE_URL`, le site tourne en mode
+ * vitrine : la landing s'affiche avec ses exemples, et rien n'invite à créer
+ * un compte qui ne pourrait pas être conservé.
  *
- * `ZONE_GOLF_ACCOUNTS=on` les réactive (utile pour un environnement de test
- * disposant d'un vrai stockage) ; `off` les coupe même en développement.
+ * `ZONE_GOLF_ACCOUNTS=off` permet de couper les comptes même quand une base
+ * est configurée (mise en maintenance, par exemple).
  */
-function readFlag(): boolean {
+const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
+
+function readOverride(): boolean | undefined {
   const raw = process.env.ZONE_GOLF_ACCOUNTS?.trim().toLowerCase();
   if (raw === "on" || raw === "true" || raw === "1") return true;
   if (raw === "off" || raw === "false" || raw === "0") return false;
-  return process.env.NODE_ENV !== "production";
+  return undefined;
 }
 
-export const ACCOUNTS_ENABLED = readFlag();
+const override = readOverride();
+
+/** Une base reste indispensable : `on` sans `DATABASE_URL` ne suffit pas. */
+export const ACCOUNTS_ENABLED = hasDatabase && override !== false;
+
+/** Le feed lit la base plutôt que les exemples codés en dur. */
+export const LIVE_FEED = ACCOUNTS_ENABLED;
 
 /**
- * Cible des appels à l'action de la landing : l'inscription quand les comptes
- * sont ouverts, sinon la section qui explique le fonctionnement — jamais un
- * lien vers une route qui répond 404.
+ * Cible des appels à l'action : l'inscription quand les comptes sont ouverts,
+ * sinon la section qui explique le fonctionnement — jamais une route en 404.
  */
 export const CTA_HREF = ACCOUNTS_ENABLED ? "/inscription" : "#manche";

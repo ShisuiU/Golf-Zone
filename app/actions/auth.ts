@@ -70,16 +70,16 @@ export async function signup(_prev: AuthState, formData: FormData): Promise<Auth
   if (handleError) errors.handle = handleError;
   if (passwordError) errors.password = passwordError;
 
-  if (!emailError && emailTaken(email)) {
+  if (!emailError && (await emailTaken(email))) {
     errors.email = "Un compte existe déjà avec cet e-mail.";
   }
-  if (!handleError && handleTaken(handle)) {
+  if (!handleError && (await handleTaken(handle))) {
     errors.handle = "Ce pseudo est déjà pris sur le banc.";
   }
 
   if (Object.keys(errors).length > 0) return { errors, values };
 
-  const user = createUser({
+  const user = await createUser({
     email: normalizeEmail(email),
     handle,
     passwordHash: await hashPassword(password),
@@ -101,7 +101,7 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
     return { errors: { form: "Renseignez votre e-mail et votre mot de passe." }, values };
   }
 
-  const user = findUserByEmail(email);
+  const user = await findUserByEmail(email);
   const ok = user ? await verifyPassword(password, user.password_hash) : false;
 
   // Un seul message pour « e-mail inconnu » et « mot de passe faux » : sinon la

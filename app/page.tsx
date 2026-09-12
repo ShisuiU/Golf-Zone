@@ -5,7 +5,7 @@ import { Roster } from "@/components/Roster";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 
-export default function Home() {
+export default async function Home() {
   return (
     <div className="relative overflow-hidden">
       {/* Grille technique : décorative, sous le contenu. */}

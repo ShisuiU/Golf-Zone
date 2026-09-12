@@ -24,7 +24,7 @@ export async function createSession(userId: number): Promise<void> {
   const token = randomBytes(32).toString("base64url");
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
 
-  insertSession(hashToken(token), userId, expiresAt);
+  await insertSession(hashToken(token), userId, expiresAt);
 
   const cookieStore = await cookies();
   cookieStore.set(COOKIE_NAME, token, {
@@ -46,7 +46,7 @@ export async function readSessionUser(): Promise<User | undefined> {
 export async function destroySession(): Promise<void> {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
-  if (token) deleteSessionByHash(hashToken(token));
+  if (token) await deleteSessionByHash(hashToken(token));
   cookieStore.delete(COOKIE_NAME);
 }
 

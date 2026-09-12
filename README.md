@@ -12,10 +12,15 @@ n'est utilisé.
 - **Landing page** implémentée, responsive (web + mobile) — c'est ce qui est
   destiné à être mis en ligne aujourd'hui.
 - **Comptes** : inscription, connexion, déconnexion, session persistante et
-  espace membre `/garage` protégé. **Actifs en local, coupés en production**
-  tant qu'une base durable n'est pas branchée (voir Déploiement).
-- Pas encore d'upload de photos ni de votes : le feed de la landing et le
-  garage affichent des contenus d'exemple ou un état vide assumé.
+  espace membre `/garage` protégé.
+- **Dépôt de photos** : un membre publie une Golf (photo + génération +
+  légende) depuis son garage, et le feed de la landing affiche les dossiers
+  réels dès le premier dépôt.
+- Pas encore de votes ni de manches 1v1.
+
+Tout cela s'active avec `DATABASE_URL`. Sans base configurée, le site tourne
+en **mode vitrine** : la landing s'affiche avec des dossiers d'exemple, et rien
+n'invite à créer un compte qui ne pourrait pas être conservé.
 
 Par honnêteté vis-à-vis des visiteurs, aucun chiffre n'est inventé : le relevé
 de votes affiche `— · —` et « vote fermé », le classement montre trois places
@@ -26,7 +31,8 @@ de votes affiche `— · —` et « vote fermé », le classement montre trois p
 
 ```bash
 npm install
-npm run dev      # http://localhost:3000
+cp .env.example .env.local   # renseigner DATABASE_URL pour activer les comptes
+npm run dev                  # http://localhost:3000
 ```
 
 Autres commandes : `npm run build`, `npm run start`, `npm run lint`.
@@ -35,6 +41,7 @@ Autres commandes : `npm run build`, `npm run start`, `npm run lint`.
 
 - **Next.js 16** (App Router) + **React 19** + **TypeScript**
 - **Tailwind CSS v4** — les tokens du design sont déclarés dans `app/globals.css`
+- **PostgreSQL** via `pg` — comptes, dossiers et photos
 - Polices auto-hébergées via `next/font` (Russo One, Barlow Condensed, Barlow, Space Mono)
 
 ## Structure
@@ -42,25 +49,24 @@ Autres commandes : `npm run build`, `npm run start`, `npm run lint`.
 ```
 app/
   globals.css      tokens de design + utilitaires (grille, livrée, biseaux)
-  layout.tsx       polices, métadonnées
   page.tsx         composition de la landing
+  garage/          espace membre : dépôt et liste des dossiers
+  photos/[id]/     sert une photo stockée en base
+  actions/         Server Actions (auth.ts, dossier.ts)
 components/
   SiteHeader.tsx   nav + bandeau HUD (menu mobile en <details>, sans JS)
+  Roster.tsx       « derniers engagés » : dossiers réels, ou exemples si vide
   auth/            formulaires d'inscription et de connexion
-  Hero.tsx         accroche + panneau de relevé du duel
-  Roster.tsx       « derniers engagés » (aperçu du feed)
-  Manche.tsx       protocole 1v1 en 3 temps + exemple de relevé
-  Classement.tsx   podium de saison (vide) + règlement
-  SiteFooter.tsx   appel à l'action final + mentions
-  ui/Button.tsx
+  garage/          formulaire de dépôt + champ photo avec compression client
 lib/
-  content.ts       textes et données d'exemple — futur contrat de données
-  db.ts            accès SQLite (users, sessions) — seul module lié au moteur
+  db.ts            tout le SQL (users, sessions, dossiers, photos)
+  flags.ts         mode vitrine ou communauté, selon DATABASE_URL
   password.ts      hachage scrypt des mots de passe
   session.ts       création / lecture / destruction de session
-  dal.ts           getCurrentUser() et requireUser() pour les pages et actions
-app/actions/
-  auth.ts          Server Actions signup / login / logout
+  dal.ts           getCurrentUser() et requireUser()
+  photo.ts         validation des images déposées
+  dossier.ts       règles partagées formulaire / serveur
+  content.ts       textes et dossiers d'exemple
 proxy.ts           pré-filtrage des routes membres
 ```
 
@@ -82,31 +88,40 @@ livré avec Next 16 (`node_modules/next/dist/docs/01-app/02-guides/authenticatio
 - La connexion renvoie le même message pour un e-mail inconnu et un mot de
   passe faux, afin de ne pas transformer la page en annuaire des inscrits.
 
-Stockage : **SQLite via le module `node:sqlite` intégré à Node** (aucune
-dépendance à compiler). Deux réserves assumées, à lever avant une mise en
-ligne : `node:sqlite` est marqué expérimental par Node, et un fichier SQLite
-local ne survit pas à un hébergement au système de fichiers éphémère
-(Vercel & co). Tout le SQL est confiné à `lib/db.ts` pour que le passage à une
-base gérée ne touche que ce module.
+Stockage : **PostgreSQL**, même moteur en développement et en production —
+faire tourner deux moteurs différents revient à ne tester qu'à moitié. Tout le
+SQL est confiné à `lib/db.ts`.
 
-Base locale dans `.data/` (ignorée par git), chemin configurable via
-`ZONE_GOLF_DB`.
+### Mode vitrine
 
-### Interrupteur
+Sans `DATABASE_URL`, `/inscription`, `/connexion` et `/garage` répondent 404,
+les Server Actions refusent les appels directs, les appels à l'action pointent
+vers la section « manche » au lieu d'une route inexistante, aucune connexion
+n'est ouverte, et la landing est prérendue statiquement. `ZONE_GOLF_ACCOUNTS=off`
+force ce mode même avec une base (maintenance).
 
-`ZONE_GOLF_ACCOUNTS` (voir `.env.example`) commande les comptes :
+Ces valeurs sont lues à la construction pour les pages prérendues : après les
+avoir changées, il faut **reconstruire / redéployer**.
 
-- non défini : actifs en développement, coupés en production ;
-- `on` / `off` : force l'état.
+## Photos
 
-Coupés, `/inscription`, `/connexion` et `/garage` répondent 404, les Server
-Actions refusent les appels directs, les appels à l'action de la landing
-pointent vers la section « manche » au lieu d'une route inexistante, aucune
-connexion SQLite n'est ouverte, et la landing redevient prérendue
-statiquement.
+Les images sont stockées **dans Postgres** (`bytea`) et servies par
+`/photos/[id]` avec un cache immuable d'un an — un identifiant ne change jamais
+de contenu. Un seul service à administrer pour démarrer ; si le volume grossit,
+seul ce point de stockage est à déplacer vers un stockage objet.
 
-Cette valeur est lue à la construction pour les pages prérendues : après
-l'avoir changée, il faut **reconstruire / redéployer**.
+Trois garde-fous, dans cet ordre :
+
+1. **Compression dans le navigateur** (`PhotoField`) : redimensionnement à
+   1600 px et réencodage JPEG avant l'envoi. Mesuré : une photo de 10,4 Mo part
+   à 188 Ko. Évite d'installer une bibliothèque de traitement d'image serveur.
+2. **Validation serveur** (`lib/photo.ts`) : 2 Mo maximum, et le type est
+   déduit de la **signature du fichier**, pas du `Content-Type` annoncé par le
+   client — un `.jpg` qui n'est pas une image est refusé.
+3. **`serverActions.bodySizeLimit`** à 2,5 Mo dans `next.config.ts` : au-dessus
+   de la limite applicative, car le plafond de Next porte sur le corps HTTP
+   brut (surcoût multipart compris). Sans cette marge, une photo de presque
+   2 Mo se heurterait à un 413 brut avant d'atteindre le message d'erreur.
 
 ## Déploiement (Vercel)
 
@@ -116,17 +131,12 @@ n'est nécessaire, et chaque push sur la branche de production redéploie.
 
 À vérifier dans les réglages du projet :
 
-- **Node.js Version : 22.x ou plus.** `package.json` déclare
-  `engines.node >= 22.5`, car le module `node:sqlite` n'existe pas avant —
-  sur Node 20 le build échouerait à l'import.
-- **Aucune variable d'environnement n'est requise** pour mettre la landing en
-  ligne. Ne pas définir `ZONE_GOLF_ACCOUNTS=on` sans base durable : les
-  inscriptions seraient perdues d'une requête à l'autre.
-
-Pour ouvrir les comptes en ligne plus tard : brancher une base gérée
-(Postgres, par exemple Neon ou Vercel Postgres) en réécrivant `lib/db.ts`,
-mettre l'URL de connexion en variable d'environnement côté Vercel, puis
-passer `ZONE_GOLF_ACCOUNTS=on` et redéployer.
+- **Node.js Version : 22.x ou plus** — la version sur laquelle le projet est
+  développé et testé, déclarée dans `engines.node`.
+- **Aucune variable d'environnement n'est requise** pour la landing seule.
+- Pour ouvrir la communauté : créer une base Postgres gérée (Neon ou Vercel
+  Postgres), coller son URL dans `DATABASE_URL` côté Vercel, redéployer. Le
+  schéma se crée tout seul au premier accès.
 
 ## Direction visuelle — « Le Banc »
 
@@ -152,9 +162,12 @@ en desktop et mobile) ont été produites en amont sur un canvas séparé.
 ## Prochaines étapes
 
 1. ~~Comptes et authentification.~~
-2. Upload de photos et dossiers voiture (le feed vient alors de la base).
+2. ~~Upload de photos et dossiers voiture.~~
 3. Manches 1v1 : appariement, vote (1 membre = 1 voix), verdict, points.
 4. Classement de saison alimenté par les résultats.
+
+Côté photos, à prévoir quand le volume montera : plusieurs photos par dossier,
+pagination du feed, et modération.
 
 À prévoir côté comptes quand le site s'ouvrira : confirmation d'e-mail,
 réinitialisation de mot de passe, limitation du nombre de tentatives de
