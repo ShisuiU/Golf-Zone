@@ -1,0 +1,130 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Mein Golf — direction « Le Banc »
+   Base industrielle graphite + compétition sport/gaming.
+   Orange = couleur de marque ET camp A d'un duel.
+   Bleu acier = camp B. Vert = réservé à un duel réellement en cours.
+--------------------------------------------------------------------------- */
+
+@theme {
+  /* Fonds */
+  --color-graphite: #121417;
+  --color-graphite-deep: #0e1013;
+  --color-surface: #1a1d21;
+  --color-surface-2: #23272c;
+
+  /* Texte — rampe volontairement courte, tous les niveaux ≥ 4.5:1 sur graphite */
+  --color-ink: #f1f1ec;
+  --color-body: #c7cdd3;
+  --color-muted: #9aa3ae;
+  --color-faint: #7d8795;
+
+  /* Identité */
+  --color-brand: #f97316;
+  --color-brand-soft: #fdba74;
+  --color-rival: #38bdf8;
+  --color-live: #22c55e;
+
+  /* Bordures */
+  --color-hairline: rgba(255, 255, 255, 0.09);
+  --color-hairline-strong: rgba(255, 255, 255, 0.22);
+}
+
+/* Typographie — `inline` est indispensable ici : les variables de next/font
+   sont posées sur <body>, alors qu'un `@theme` normal déclare ces variables
+   sur :root, où `var(--font-russo-one)` serait introuvable (la déclaration
+   entière devient alors invalide et la police retombe sur la pile système). */
+@theme inline {
+  --font-impact: var(--font-russo-one), "Arial Black", sans-serif;
+  --font-cond: var(--font-barlow-condensed), "Arial Narrow", sans-serif;
+  --font-body: var(--font-barlow), system-ui, sans-serif;
+  --font-mono: var(--font-space-mono), ui-monospace, monospace;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-graphite);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Le focus clavier doit rester visible partout. */
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+
+  a {
+    color: var(--color-brand);
+    text-decoration: none;
+  }
+
+  a:hover {
+    color: var(--color-brand-soft);
+  }
+}
+
+@layer utilities {
+  /* Grille technique de fond, héritée de la direction « Atelier ». */
+  .tech-grid {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 56px 56px;
+  }
+
+  /* Bande de livrée diagonale, séparateur de section. */
+  .livery {
+    background-image: repeating-linear-gradient(
+      45deg,
+      rgba(249, 115, 22, 0.5) 0 10px,
+      transparent 10px 20px
+    );
+  }
+
+  /* Coin biseauté « esport ». Réservé aux éléments à fond plein :
+     un clip-path ne redessine pas une bordure sur la diagonale. */
+  .bevel {
+    clip-path: polygon(
+      0 0,
+      calc(100% - 12px) 0,
+      100% 12px,
+      100% 100%,
+      12px 100%,
+      0 calc(100% - 12px)
+    );
+  }
+
+  /* Même motif pour les petits éléments : à 12px, la coupe mangeait la moitié
+     du bord d'un badge de ~20px de haut. */
+  .bevel-sm {
+    clip-path: polygon(
+      0 0,
+      calc(100% - 6px) 0,
+      100% 6px,
+      100% 100%,
+      6px 100%,
+      0 calc(100% - 6px)
+    );
+  }
+
+  /* Panneau technique : bordure complète + filet haut orange. */
+  .panel {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-hairline);
+    border-top: 2px solid var(--color-brand);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
