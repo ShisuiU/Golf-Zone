@@ -3,21 +3,21 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { logout } from "@/app/actions/auth";
-import { removeDossier } from "@/app/actions/dossier";
-import { DossierForm } from "@/components/garage/DossierForm";
+import { removePost } from "@/app/actions/post";
+import { PostForm } from "@/components/profil/PostForm";
 import { requireUser } from "@/lib/dal";
-import { listDossiersOfUser } from "@/lib/db";
+import { listPostsOfUser } from "@/lib/db";
 import { ACCOUNTS_ENABLED } from "@/lib/flags";
-import { SEASON, SITE_NAME } from "@/lib/content";
+import { SITE_NAME } from "@/lib/content";
 
 export const metadata: Metadata = {
-  title: "Mon garage — Zone Golf",
+  title: "Mon profil — Zone Golf",
 };
 
-export default async function GaragePage() {
+export default async function ProfilPage() {
   if (!ACCOUNTS_ENABLED) notFound();
   const user = await requireUser();
-  const dossiers = await listDossiersOfUser(user.id);
+  const posts = await listPostsOfUser(user.id);
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -40,45 +40,40 @@ export default async function GaragePage() {
       </header>
 
       <main className="relative mx-auto w-full max-w-[900px] px-5 py-10 lg:py-16">
-        <p className="mb-3 font-mono text-[10px] tracking-[0.15em] text-brand">
-          Espace membre — {SEASON.label.toLowerCase()}
-        </p>
-        <h1 className="mb-2 font-impact text-[30px] lg:text-[42px]">Mon garage</h1>
+        <h1 className="mb-2 font-impact text-[30px] lg:text-[42px]">@{user.handle}</h1>
         <p className="mb-10 text-[15px] leading-relaxed text-body">
-          Bienvenue <span className="font-cond font-semibold text-ink">@{user.handle}</span>.
-          Déposez vos Golf ici : elles apparaissent aussitôt sur le banc.
+          Vos photos apparaissent sur le fil d&apos;accueil dès que vous les publiez.
         </p>
 
         <section className="panel mb-10 p-6 lg:p-8">
           <h2 className="mb-6 font-cond text-xl font-semibold uppercase tracking-[0.03em]">
-            Déposer une Golf
+            Poster une photo
           </h2>
-          <DossierForm />
+          <PostForm />
         </section>
 
         <section>
           <h2 className="mb-5 font-cond text-xl font-semibold uppercase tracking-[0.03em]">
-            Mes dossiers{" "}
-            <span className="font-mono text-sm text-faint">({dossiers.length})</span>
+            Mes photos <span className="font-mono text-sm text-faint">({posts.length})</span>
           </h2>
 
-          {dossiers.length === 0 ? (
+          {posts.length === 0 ? (
             <div className="flex flex-col gap-3 border border-dashed border-hairline-strong px-4 py-10 text-center">
-              <span className="font-mono text-[10px] tracking-[0.1em] uppercase text-faint">
-                Aucun dossier
-              </span>
               <span className="font-cond text-lg font-semibold uppercase tracking-[0.04em] text-faint">
-                Votre première photo lancera le vôtre
+                Aucune photo pour le moment
+              </span>
+              <span className="text-sm text-muted">
+                Publiez la première avec le formulaire ci-dessus.
               </span>
             </div>
           ) : (
             <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {dossiers.map((d) => (
-                <li key={d.id} className="border border-hairline bg-surface">
-                  {d.photoId ? (
+              {posts.map((post) => (
+                <li key={post.id} className="border border-hairline bg-surface">
+                  {post.photoId ? (
                     <Image
-                      src={`/photos/${d.photoId}`}
-                      alt={`Golf ${d.model} de @${d.handle}`}
+                      src={`/photos/${post.photoId}`}
+                      alt={`Golf ${post.model} de @${post.handle}`}
                       width={400}
                       height={300}
                       className="h-44 w-full object-cover"
@@ -87,20 +82,20 @@ export default async function GaragePage() {
                   ) : null}
                   <div className="p-4">
                     <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.05em] text-faint">
-                      Dossier #{d.id} · {d.model}
+                      {post.model}
                     </p>
-                    {d.caption ? (
+                    {post.caption ? (
                       <p className="mb-3 text-[13px] leading-relaxed text-muted">
-                        &laquo;&nbsp;{d.caption}&nbsp;&raquo;
+                        {post.caption}
                       </p>
                     ) : null}
-                    <form action={removeDossier}>
-                      <input type="hidden" name="id" value={d.id} />
+                    <form action={removePost}>
+                      <input type="hidden" name="id" value={post.id} />
                       <button
                         type="submit"
                         className="min-h-[40px] cursor-pointer font-mono text-[11px] uppercase tracking-[0.05em] text-faint hover:text-brand"
                       >
-                        Retirer du banc
+                        Supprimer
                       </button>
                     </form>
                   </div>
@@ -112,7 +107,7 @@ export default async function GaragePage() {
 
         <p className="mt-10 text-sm text-muted">
           <Link href="/" className="underline">
-            Retour au banc
+            Retour à l&apos;accueil
           </Link>
         </p>
       </main>

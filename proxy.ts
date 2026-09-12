@@ -11,7 +11,7 @@ import { ACCOUNTS_ENABLED } from "@/lib/flags";
  * y compris les préchargements. La vérification qui fait foi est dans le DAL
  * (`requireUser`), côté page.
  */
-const MEMBER_ROUTES = ["/garage"];
+const MEMBER_ROUTES = ["/profil"];
 
 export function proxy(request: NextRequest) {
   // Comptes coupés : les routes membres répondent 404, inutile de rediriger
@@ -32,5 +32,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/garage/:path*"],
+  matcher: ["/profil/:path*"],
 };

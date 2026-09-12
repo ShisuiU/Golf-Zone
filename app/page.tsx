@@ -1,7 +1,7 @@
-import { Classement } from "@/components/Classement";
+import { Duels } from "@/components/Duels";
+import { Feed } from "@/components/Feed";
 import { Hero } from "@/components/Hero";
-import { Manche } from "@/components/Manche";
-import { Roster } from "@/components/Roster";
+import { HowItWorks } from "@/components/HowItWorks";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 
@@ -15,9 +15,9 @@ export default async function Home() {
       <main>
         <Hero />
         <div aria-hidden="true" className="livery relative h-2.5 opacity-50" />
-        <Roster />
-        <Manche />
-        <Classement />
+        <Feed />
+        <HowItWorks />
+        <Duels />
         <SiteFooter />
       </main>
     </div>

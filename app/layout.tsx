@@ -34,7 +34,7 @@ const spaceMono = Space_Mono({
 export const metadata: Metadata = {
   title: `${SITE_NAME} — ${SITE_TAGLINE}`,
   description:
-    "Le banc d'essai des Golf : chaque voiture a son dossier photo, chaque manche a son verdict. Communauté indépendante, toutes générations admises.",
+    "Partagez des photos de votre Volkswagen Golf et découvrez celles de la communauté. Toutes générations, Mk1 à Mk8. Gratuit et sans publicité.",
 };
 
 export default function RootLayout({

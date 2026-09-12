@@ -1,15 +1,15 @@
 "use client";
 
 import { useActionState } from "react";
-import { publishDossier, type DossierState } from "@/app/actions/dossier";
-import { PhotoField } from "@/components/garage/PhotoField";
+import { publishPost, type PostState } from "@/app/actions/post";
+import { PhotoField } from "@/components/profil/PhotoField";
 import { SubmitButton } from "@/components/auth/SubmitButton";
-import { GENERATIONS, MAX_CAPTION } from "@/lib/dossier";
+import { GENERATIONS, MAX_CAPTION } from "@/lib/post";
 
-const EMPTY: DossierState = {};
+const EMPTY: PostState = {};
 
-export function DossierForm() {
-  const [state, formAction, pending] = useActionState(publishDossier, EMPTY);
+export function PostForm() {
+  const [state, formAction, pending] = useActionState(publishPost, EMPTY);
 
   return (
     <form action={formAction} className="flex flex-col gap-5" noValidate>
@@ -79,8 +79,8 @@ export function DossierForm() {
         </p>
       ) : null}
 
-      <SubmitButton pending={pending} pendingLabel="Dépôt en cours…">
-        Déposer au banc
+      <SubmitButton pending={pending} pendingLabel="Publication…">
+        Publier
       </SubmitButton>
     </form>
   );

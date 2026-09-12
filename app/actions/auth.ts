@@ -74,7 +74,7 @@ export async function signup(_prev: AuthState, formData: FormData): Promise<Auth
     errors.email = "Un compte existe déjà avec cet e-mail.";
   }
   if (!handleError && (await handleTaken(handle))) {
-    errors.handle = "Ce pseudo est déjà pris sur le banc.";
+    errors.handle = "Ce pseudo est déjà pris.";
   }
 
   if (Object.keys(errors).length > 0) return { errors, values };
@@ -87,7 +87,7 @@ export async function signup(_prev: AuthState, formData: FormData): Promise<Auth
   await createSession(user.id);
 
   // redirect() lève une exception de contrôle de flux : hors de tout try/catch.
-  redirect("/garage");
+  redirect("/profil");
 }
 
 export async function login(_prev: AuthState, formData: FormData): Promise<AuthState> {
@@ -111,7 +111,7 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
   }
 
   await createSession(user.id);
-  redirect("/garage");
+  redirect("/profil");
 }
 
 export async function logout(): Promise<void> {

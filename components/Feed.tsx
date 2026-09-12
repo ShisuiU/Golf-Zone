@@ -1,7 +1,8 @@
 import Image from "next/image";
-import { ROSTER, type RosterEntry } from "@/lib/content";
-import { listRecentDossiers, type FeedEntry } from "@/lib/db";
-import { LIVE_FEED } from "@/lib/flags";
+import Link from "next/link";
+import { SAMPLE_POSTS, type SampleEntry } from "@/lib/content";
+import { listRecentPosts, type FeedEntry } from "@/lib/db";
+import { ACCOUNTS_ENABLED, CTA_HREF, LIVE_FEED } from "@/lib/flags";
 
 function HeartIcon() {
   return (
@@ -35,7 +36,7 @@ function LiveCard({ entry }: { entry: FeedEntry }) {
           @{entry.handle}
         </h3>
         <p className="mb-2 font-mono text-[10px] tracking-[0.05em] text-faint uppercase">
-          Dossier #{entry.id} · {entry.model}
+          {entry.model}
         </p>
         {entry.caption ? (
           <p className="text-[13px] leading-relaxed text-muted">
@@ -48,7 +49,7 @@ function LiveCard({ entry }: { entry: FeedEntry }) {
 }
 
 /** Carte d'exemple, utilisée tant qu'aucune base n'est branchée. */
-function SampleCard({ entry }: { entry: RosterEntry }) {
+function SampleCard({ entry }: { entry: SampleEntry }) {
   return (
     <article className="border border-hairline bg-surface transition-colors duration-150 hover:border-brand/55">
       <div className="h-44 bg-[linear-gradient(150deg,#2a2f33,#15171a)] lg:h-[152px]" />
@@ -57,11 +58,11 @@ function SampleCard({ entry }: { entry: RosterEntry }) {
           <h3 className="font-cond text-[17px] font-semibold tracking-[0.03em]">{entry.handle}</h3>
           <span className="flex items-center gap-1.5 text-brand">
             <HeartIcon />
-            <span className="font-mono text-[11px]">{entry.hype}</span>
+            <span className="font-mono text-[11px]">{entry.likes}</span>
           </span>
         </div>
         <p className="mb-2 font-mono text-[10px] tracking-[0.05em] text-faint uppercase">
-          {entry.dossier} · {entry.model}
+          {entry.model}
         </p>
         <p className="text-[13px] leading-relaxed text-muted">
           &laquo;&nbsp;{entry.caption}&nbsp;&raquo;
@@ -80,7 +81,7 @@ const FEED_TIMEOUT_MS = 2_500;
  * abandonne donc vite et retombe sur les exemples — les pages membres, elles,
  * laissent le temps au réveil, puisque le visiteur y a cliqué pour agir.
  */
-async function safeRecentDossiers(): Promise<FeedEntry[]> {
+async function safeRecentPosts(): Promise<FeedEntry[]> {
   if (!LIVE_FEED) return [];
 
   const timeout = new Promise<"timeout">((resolve) =>
@@ -88,55 +89,77 @@ async function safeRecentDossiers(): Promise<FeedEntry[]> {
   );
 
   try {
-    const result = await Promise.race([listRecentDossiers(4), timeout]);
+    const result = await Promise.race([listRecentPosts(4), timeout]);
     if (result === "timeout") {
-      console.warn("Feed : base trop lente, repli sur les exemples.");
+      console.warn("Fil : base trop lente, repli sur les exemples.");
       return [];
     }
     return result;
   } catch (error) {
-    console.error("Feed indisponible, repli sur les exemples :", error);
+    console.error("Fil indisponible, repli sur les exemples :", error);
     return [];
   }
 }
 
-export async function Roster() {
-  const live = await safeRecentDossiers();
+/**
+ * Dernière case de la grille : une invitation à poster. Elle évite une grille
+ * à moitié vide quand la communauté démarre, sans inventer de contenu.
+ */
+function InviteCard() {
+  return (
+    <Link
+      href={CTA_HREF}
+      className="flex min-h-[220px] flex-col items-center justify-center gap-3 border border-dashed border-hairline-strong p-4 text-center hover:border-brand/55 hover:text-ink"
+    >
+      <span aria-hidden="true" className="font-impact text-3xl text-brand">
+        +
+      </span>
+      <span className="font-cond text-[17px] font-semibold uppercase tracking-[0.04em] text-body">
+        Postez votre Golf
+      </span>
+      <span className="text-[13px] text-muted">Votre photo apparaîtra ici</span>
+    </Link>
+  );
+}
+
+export async function Feed() {
+  const live = await safeRecentPosts();
   // Tant que personne n'a déposé, on montre les exemples plutôt qu'une grille
   // vide — mais dès le premier dossier réel, ils disparaissent.
   const showSamples = live.length === 0;
 
   return (
     <section
-      id="roster"
+      id="fil"
       className="relative border-b border-hairline px-5 py-10 lg:px-16 lg:py-20"
     >
       <div className="mb-2 flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
-        <h2 className="font-impact text-[28px] lg:text-4xl">Derniers engagés</h2>
+        <h2 className="font-impact text-[28px] lg:text-4xl">Le fil</h2>
         <a
-          href="#roster"
+          href="#fil"
           className="hidden font-mono text-[11px] tracking-[0.06em] text-brand lg:inline"
         >
-          Tout le banc →
+          Tout voir →
         </a>
       </div>
       <p className="mb-6 text-sm text-muted lg:mb-10 lg:text-[15px]">
         {showSamples
-          ? "Exemples de dossiers, le temps que la communauté remplisse le banc."
-          : "Les dossiers les plus récents déposés par la communauté."}
+          ? "Exemples de publications, en attendant les premières photos de la communauté."
+          : "Les dernières photos postées par la communauté."}
       </p>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
         {showSamples
-          ? ROSTER.map((entry) => <SampleCard key={entry.dossier} entry={entry} />)
+          ? SAMPLE_POSTS.map((entry) => <SampleCard key={entry.handle} entry={entry} />)
           : live.map((entry) => <LiveCard key={entry.id} entry={entry} />)}
+        {!showSamples && ACCOUNTS_ENABLED && live.length < 4 ? <InviteCard /> : null}
       </div>
 
       <a
-        href="#roster"
+        href="#fil"
         className="mt-4 flex min-h-[48px] items-center justify-center border border-brand/35 font-mono text-[11px] tracking-[0.05em] text-brand lg:hidden"
       >
-        Tout le banc →
+        Tout voir →
       </a>
     </section>
   );

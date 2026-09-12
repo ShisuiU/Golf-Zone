@@ -176,7 +176,14 @@ export async function deleteSessionByHash(tokenHash: string): Promise<void> {
   await query("DELETE FROM sessions WHERE token_hash = $1", [tokenHash]);
 }
 
-/* --------------------------------------------------------- dossiers/photos */
+/* ------------------------------------------------------- publications/photos */
+
+/*
+ * Note : les tables s'appellent encore `dossiers` et `photos`. Le vocabulaire
+ * visible est passé à « publication », mais renommer une table qui contient
+ * déjà des données de production n'apporterait rien à l'utilisateur — seul le
+ * code parle SQL ici.
+ */
 
 export type FeedEntry = {
   id: number;
@@ -188,10 +195,10 @@ export type FeedEntry = {
 };
 
 /**
- * Crée un dossier et sa photo dans une transaction : un dossier sans image
- * n'aurait rien à montrer dans le feed.
+ * Crée une publication et sa photo dans une transaction : une publication sans
+ * image n'aurait rien à montrer dans le fil.
  */
-export async function createDossier(input: {
+export async function createPost(input: {
   userId: number;
   model: string;
   caption: string;
@@ -220,8 +227,8 @@ export async function createDossier(input: {
   }
 }
 
-/** Derniers dossiers déposés, avec leur photo la plus récente. */
-export async function listRecentDossiers(limit = 4): Promise<FeedEntry[]> {
+/** Dernières publications, avec leur photo la plus récente. */
+export async function listRecentPosts(limit = 4): Promise<FeedEntry[]> {
   return query<FeedEntry>(
     `SELECT d.id,
             u.handle,
@@ -239,7 +246,7 @@ export async function listRecentDossiers(limit = 4): Promise<FeedEntry[]> {
   );
 }
 
-export async function listDossiersOfUser(userId: number): Promise<FeedEntry[]> {
+export async function listPostsOfUser(userId: number): Promise<FeedEntry[]> {
   return query<FeedEntry>(
     `SELECT d.id, u.handle, d.model, d.caption, d.created_at AS "createdAt",
             (SELECT p.id FROM photos p
@@ -253,7 +260,7 @@ export async function listDossiersOfUser(userId: number): Promise<FeedEntry[]> {
   );
 }
 
-export async function countDossiers(): Promise<number> {
+export async function countPosts(): Promise<number> {
   const rows = await query<{ count: string }>("SELECT count(*)::text AS count FROM dossiers");
   return Number(rows[0]?.count ?? 0);
 }
@@ -265,10 +272,10 @@ export async function findPhoto(id: number): Promise<StoredPhoto | undefined> {
   return rows[0];
 }
 
-/** Un membre ne peut supprimer que ses propres dossiers. */
-export async function deleteDossierOwnedBy(dossierId: number, userId: number): Promise<boolean> {
+/** Un membre ne peut supprimer que ses propres publications. */
+export async function deletePostOwnedBy(postId: number, userId: number): Promise<boolean> {
   const rows = await query("DELETE FROM dossiers WHERE id = $1 AND user_id = $2 RETURNING id", [
-    dossierId,
+    postId,
     userId,
   ]);
   return rows.length > 0;

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SEASON, SITE_NAME } from "@/lib/content";
+import { SITE_NAME } from "@/lib/content";
 
 /** Cadre commun aux pages inscription / connexion : un panneau centré, sans nav. */
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
@@ -9,9 +9,6 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <div className="relative mx-auto flex min-h-screen w-full max-w-[520px] flex-col justify-center px-5 py-12">
         <Link href="/" className="mb-8 flex items-center gap-3 self-start hover:text-ink">
           <span className="font-impact text-lg text-ink">{SITE_NAME.toUpperCase()}</span>
-          <span className="bevel-sm bg-brand px-2 py-1 font-mono text-[9px] font-bold text-graphite">
-            {SEASON.label.toUpperCase()}
-          </span>
         </Link>
         {children}
       </div>

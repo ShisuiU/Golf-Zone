@@ -17,7 +17,7 @@ export function SignupForm() {
         name="handle"
         autoComplete="username"
         prefix="@"
-        hint="C'est le nom affiché sur vos dossiers et dans les duels."
+        hint="C'est le nom affiché sous vos photos."
         defaultValue={state.values?.handle}
         error={state.errors?.handle}
       />
@@ -43,7 +43,7 @@ export function SignupForm() {
         </p>
       ) : null}
       <SubmitButton pending={pending} pendingLabel="Création…">
-        Ouvrir mon dossier
+        Créer mon compte
       </SubmitButton>
     </form>
   );

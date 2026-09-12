@@ -1,12 +1,5 @@
 import Link from "next/link";
-import {
-  LOGIN_HREF,
-  MEMBER_HREF,
-  NAV_LINKS,
-  SEASON,
-  SITE_NAME,
-  TICKER_ITEMS,
-} from "@/lib/content";
+import { LOGIN_HREF, MEMBER_HREF, NAV_LINKS, SITE_NAME, TICKER_ITEMS } from "@/lib/content";
 import { getCurrentUser } from "@/lib/dal";
 import { ACCOUNTS_ENABLED, CTA_HREF } from "@/lib/flags";
 
@@ -20,11 +13,11 @@ import { ACCOUNTS_ENABLED, CTA_HREF } from "@/lib/flags";
 export async function SiteHeader() {
   const user = await getCurrentUser();
 
-  // Sans comptes, le bouton principal renvoie à l'explication des manches
-  // plutôt que vers une inscription qui n'existe pas encore en ligne.
+  // Sans comptes ouverts, le bouton principal renvoie à la présentation
+  // plutôt que vers une inscription qui n'existe pas encore.
   const primary = user
-    ? { href: MEMBER_HREF, label: "Mon garage" }
-    : { href: CTA_HREF, label: "Engager ma Golf" };
+    ? { href: MEMBER_HREF, label: "Mon profil" }
+    : { href: CTA_HREF, label: "Poster une photo" };
 
   return (
     <header className="relative">
@@ -32,10 +25,6 @@ export async function SiteHeader() {
         <div className="flex items-center gap-3">
           <span className="font-impact text-lg tracking-[0.01em] lg:text-[23px]">
             {SITE_NAME.toUpperCase()}
-          </span>
-          <span className="bevel-sm bg-brand px-2 py-1 font-mono text-[8px] font-bold text-graphite lg:px-2.5 lg:text-[10px]">
-            <span className="lg:hidden">{SEASON.short}</span>
-            <span className="hidden lg:inline">{SEASON.label.toUpperCase()}</span>
           </span>
         </div>
 
@@ -117,7 +106,7 @@ export async function SiteHeader() {
         </details>
       </div>
 
-      {/* Bandeau HUD — orange = « à venir ». Le vert reste pour un duel en cours. */}
+      {/* Bandeau d'information — orange = « à venir ». */}
       <div className="flex items-center justify-between gap-6 border-b border-hairline bg-graphite-deep px-5 py-2.5 lg:px-16">
         <div className="flex items-center gap-7">
           <span className="flex items-center gap-2">
@@ -126,7 +115,7 @@ export async function SiteHeader() {
               className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand shadow-[0_0_9px_rgba(249,115,22,0.9)]"
             />
             <span className="font-mono text-[10px] tracking-[0.05em] text-brand lg:text-[11px]">
-              Manche 01 — ouverture prochaine
+              Duels bientôt disponibles
             </span>
           </span>
           {TICKER_ITEMS.map((item) => (
@@ -136,7 +125,7 @@ export async function SiteHeader() {
           ))}
         </div>
         <span className="hidden font-mono text-[11px] text-faint lg:inline">
-          {user ? `Connecté · @${user.handle}` : "Communauté indépendante"}
+          {user ? `Connecté · @${user.handle}` : "Communauté indépendante de Volkswagen"}
         </span>
       </div>
     </header>

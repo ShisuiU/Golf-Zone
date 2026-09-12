@@ -1,5 +1,5 @@
 /**
- * Règles d'un dossier, partagées par le formulaire et l'action serveur.
+ * Règles d'une publication, partagées par le formulaire et l'action serveur.
  *
  * Ces constantes vivent hors du fichier "use server" : celui-ci ne peut
  * exporter que des fonctions asynchrones.

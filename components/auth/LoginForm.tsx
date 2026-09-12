@@ -31,7 +31,7 @@ export function LoginForm() {
         </p>
       ) : null}
       <SubmitButton pending={pending} pendingLabel="Connexion…">
-        Entrer sur le banc
+        Se connecter
       </SubmitButton>
     </form>
   );
