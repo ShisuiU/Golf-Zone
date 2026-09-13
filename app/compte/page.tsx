@@ -5,6 +5,7 @@ import { logout } from "@/app/actions/auth";
 import { DeleteAccountForm } from "@/components/compte/DeleteAccountForm";
 import { PasswordForm } from "@/components/compte/PasswordForm";
 import { VerifyEmail } from "@/components/compte/VerifyEmail";
+import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { requireUser } from "@/lib/dal";
 import { isEmailVerified } from "@/lib/db";
@@ -37,7 +38,7 @@ export default async function ComptePage() {
           {verified ? null : <VerifyEmail />}
 
           {isModerator(user.handle) ? (
-            <p className="border border-hairline bg-surface p-4 text-[15px] text-body">
+            <p className="surface p-4 text-[15px] text-body">
               <Link href="/moderation" className="underline">
                 File de modération
               </Link>{" "}
@@ -50,7 +51,7 @@ export default async function ComptePage() {
           <form action={logout}>
             <button
               type="submit"
-              className="min-h-[44px] cursor-pointer border border-hairline-strong px-5 font-cond text-sm font-semibold uppercase tracking-[0.06em] text-ink"
+              className="pressable min-h-[44px] cursor-pointer border border-hairline-strong px-5 font-cond text-sm font-semibold uppercase tracking-[0.06em] text-ink"
             >
               Se déconnecter
             </button>
@@ -60,6 +61,7 @@ export default async function ComptePage() {
             <DeleteAccountForm />
           </div>
         </div>
+        <SiteFooter />
       </main>
     </div>
   );

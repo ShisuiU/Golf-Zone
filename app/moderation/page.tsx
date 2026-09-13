@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { dismissReport, removeReported } from "@/app/actions/report";
 import { Time } from "@/components/feed/Time";
+import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { requireUser } from "@/lib/dal";
 import { listOpenReports } from "@/lib/db";
@@ -41,7 +42,7 @@ export default async function ModerationPage() {
 
         <ul className="flex flex-col gap-4">
           {reports.map((report) => (
-            <li key={report.id} className="border border-hairline bg-surface p-4">
+            <li key={report.id} className="surface p-4">
               <p className="font-mono text-[10px] uppercase tracking-[0.05em] text-faint">
                 {report.commentId ? "Commentaire" : "Publication"} de @{report.author} ·
                 signalé par {report.reporter ? `@${report.reporter}` : "un compte supprimé"} ·{" "}
@@ -71,7 +72,7 @@ export default async function ModerationPage() {
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <Link
                   href={`/publication/${report.contextPostId}`}
-                  className="min-h-[40px] font-cond text-sm font-semibold uppercase tracking-[0.05em] text-body hover:text-ink"
+                  className="inline-flex min-h-[40px] items-center font-cond text-sm font-semibold uppercase tracking-[0.05em] text-body transition-colors duration-150 hover:text-ink"
                 >
                   Voir en contexte
                 </Link>
@@ -83,7 +84,7 @@ export default async function ModerationPage() {
                   )}
                   <button
                     type="submit"
-                    className="min-h-[40px] cursor-pointer border border-brand px-4 font-cond text-sm font-bold uppercase tracking-[0.05em] text-brand"
+                    className="pressable min-h-[40px] cursor-pointer border border-brand px-4 font-cond text-sm font-bold uppercase tracking-[0.05em] text-brand hover:bg-brand/10"
                   >
                     Supprimer le contenu
                   </button>
@@ -92,7 +93,7 @@ export default async function ModerationPage() {
                   <input type="hidden" name="id" value={report.id} />
                   <button
                     type="submit"
-                    className="min-h-[40px] cursor-pointer px-2 font-cond text-sm font-semibold uppercase tracking-[0.05em] text-muted hover:text-ink"
+                    className="pressable min-h-[40px] cursor-pointer px-2 font-cond text-sm font-semibold uppercase tracking-[0.05em] text-muted hover:text-ink"
                   >
                     Laisser en place
                   </button>
@@ -101,6 +102,7 @@ export default async function ModerationPage() {
             </li>
           ))}
         </ul>
+        <SiteFooter />
       </main>
     </div>
   );

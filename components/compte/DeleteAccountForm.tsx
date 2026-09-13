@@ -20,7 +20,7 @@ export function DeleteAccountForm() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="min-h-[44px] cursor-pointer self-start font-cond text-sm font-semibold uppercase tracking-[0.06em] text-muted hover:text-brand"
+        className="pressable min-h-[44px] cursor-pointer self-start font-cond text-sm font-semibold uppercase tracking-[0.06em] text-muted hover:text-brand"
       >
         Supprimer mon compte
       </button>
@@ -54,14 +54,14 @@ export function DeleteAccountForm() {
         <button
           type="submit"
           disabled={pending}
-          className="min-h-[46px] cursor-pointer border border-brand px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-brand disabled:opacity-60"
+          className="pressable min-h-[46px] cursor-pointer border border-brand px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-brand hover:bg-brand/10 disabled:opacity-60"
         >
           {pending ? "Suppression…" : "Supprimer définitivement"}
         </button>
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="min-h-[46px] cursor-pointer px-2 font-cond text-sm font-semibold uppercase tracking-[0.06em] text-muted hover:text-ink"
+          className="pressable min-h-[46px] cursor-pointer px-2 font-cond text-sm font-semibold uppercase tracking-[0.06em] text-muted hover:text-ink"
         >
           Annuler
         </button>

@@ -24,7 +24,7 @@ export function Composer({
   const [open, setOpen] = useState(false);
 
   return (
-    <form action={formAction} className="border border-hairline bg-surface p-4">
+    <form action={formAction} className="surface p-4">
       <div className="flex items-start gap-3">
         <Avatar handle={handle} photoId={avatarPhotoId} size={40} />
         <textarea
@@ -41,7 +41,7 @@ export function Composer({
       </div>
 
       {open ? (
-        <div className="mt-4 flex flex-col gap-4 border-t border-hairline pt-4">
+        <div className="animate-rise mt-4 flex flex-col gap-4 border-t border-hairline pt-4">
           <PhotoField error={state.errors?.photo} optional />
 
           <div className="flex flex-col gap-2">
@@ -85,7 +85,7 @@ export function Composer({
           <button
             type="submit"
             disabled={pending}
-            className="bevel-sm min-h-[44px] cursor-pointer bg-brand px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-graphite disabled:opacity-60"
+            className="pressable bevel-sm min-h-[44px] cursor-pointer bg-brand px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-graphite disabled:opacity-60"
           >
             {pending ? "Publication…" : "Publier"}
           </button>

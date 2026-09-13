@@ -1,11 +1,13 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { Composer } from "@/components/feed/Composer";
+import { FeedSkeleton } from "@/components/feed/FeedSkeleton";
 import { PostCard } from "@/components/feed/PostCard";
 import { SideRail } from "@/components/feed/SideRail";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getCurrentUser } from "@/lib/dal";
-import { listFeed, listMembers, type FeedEntry, type MemberSummary } from "@/lib/db";
+import { listFeed, listMembers, type FeedEntry, type MemberSummary, type User } from "@/lib/db";
 import { ACCOUNTS_ENABLED, LIVE_FEED } from "@/lib/flags";
 
 /** Le fil ne doit jamais bloquer la page : la base peut être endormie. */
@@ -48,7 +50,7 @@ async function safeMembers(): Promise<MemberSummary[]> {
 /** Bandeau d'accueil, montré aux visiteurs qui ne sont pas connectés. */
 function WelcomeBanner() {
   return (
-    <section className="border border-hairline bg-surface p-5 lg:p-7">
+    <section className="surface p-5 lg:p-7">
       <h1 className="mb-3 font-impact text-[26px] leading-tight lg:text-[32px]">
         La communauté des propriétaires de Golf.
       </h1>
@@ -61,13 +63,13 @@ function WelcomeBanner() {
         <div className="mt-5 flex flex-col gap-3 sm:flex-row">
           <Link
             href="/inscription"
-            className="bevel-sm inline-flex min-h-[48px] items-center justify-center bg-brand px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-graphite hover:text-graphite"
+            className="pressable bevel-sm inline-flex min-h-[48px] items-center justify-center bg-brand px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-graphite hover:text-graphite"
           >
             Créer mon compte
           </Link>
           <Link
             href="/connexion"
-            className="inline-flex min-h-[48px] items-center justify-center border border-hairline-strong px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-ink hover:text-ink"
+            className="pressable inline-flex min-h-[48px] items-center justify-center border border-hairline-strong px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-ink hover:text-ink"
           >
             Se connecter
           </Link>
@@ -92,6 +94,83 @@ function EmptyFeed({ connected }: { connected: boolean }) {
   );
 }
 
+/**
+ * Les publications. Séparées du reste de la page pour pouvoir être mises en
+ * attente : l'en-tête, la zone de publication et la colonne latérale
+ * s'affichent tout de suite, la silhouette du fil tient la place le temps que
+ * la base réponde — elle dort après quelques minutes sans trafic.
+ */
+async function FeedPosts({
+  viewerId,
+  viewerHandle,
+  cursor,
+}: {
+  viewerId: number | null;
+  viewerHandle: string | null;
+  cursor?: number;
+}) {
+  const feed = await safeFeed(viewerId, cursor);
+  const page = typeof feed === "string" ? undefined : feed;
+  const posts = page?.posts ?? [];
+
+  if (feed === "closed") {
+    return (
+      <p className="surface px-4 py-6 text-center text-sm text-muted">Le fil ouvre bientôt.</p>
+    );
+  }
+  if (feed === "unavailable") {
+    return (
+      <p className="surface px-4 py-6 text-center text-sm text-muted">
+        Le fil est momentanément indisponible. Réessayez dans un instant.
+      </p>
+    );
+  }
+  if (posts.length === 0) {
+    return cursor ? (
+      <p className="surface px-4 py-6 text-center text-sm text-muted">Plus rien avant celle-ci.</p>
+    ) : (
+      <EmptyFeed connected={viewerHandle !== null} />
+    );
+  }
+
+  return (
+    <>
+      {posts.map((post, index) => (
+        <div
+          key={post.id}
+          className="animate-rise"
+          // Décalage court et plafonné : les premières cartes se posent l'une
+          // après l'autre, les suivantes n'attendent pas leur tour — personne
+          // ne doit patienter pour lire.
+          style={{ animationDelay: `${Math.min(index, 4) * 45}ms` }}
+        >
+          <PostCard
+            post={post}
+            viewerHandle={viewerHandle}
+            // Un visiteur n'a besoin d'être invité à s'inscrire qu'une fois,
+            // pas sur chacune des vingt cartes de la page.
+            promptSignup={index === 0}
+          />
+        </div>
+      ))}
+
+      {page?.more ? (
+        <Link
+          href={`/?avant=${posts[posts.length - 1].id}`}
+          className="pressable border border-hairline-strong px-4 py-3.5 text-center font-cond text-sm font-semibold uppercase tracking-[0.06em] text-body hover:text-ink"
+        >
+          Publications plus anciennes
+        </Link>
+      ) : null}
+    </>
+  );
+}
+
+/** La colonne latérale attend elle aussi la base : même traitement. */
+async function Rail({ user }: { user: User | undefined }) {
+  return <SideRail user={user} members={await safeMembers()} />;
+}
+
 export default async function Home({
   searchParams,
 }: {
@@ -102,11 +181,6 @@ export default async function Home({
   const cursor = Number.isInteger(before) && before > 0 ? before : undefined;
 
   const user = await getCurrentUser();
-  // En parallèle : la colonne latérale ne coûte pas un aller-retour de plus
-  // en temps d'attente, seulement une requête de plus en même temps.
-  const [feed, members] = await Promise.all([safeFeed(user?.id ?? null, cursor), safeMembers()]);
-  const page = typeof feed === "string" ? undefined : feed;
-  const posts = page?.posts ?? [];
 
   return (
     <div className="relative flex min-h-screen flex-col overflow-hidden">
@@ -126,43 +200,13 @@ export default async function Home({
               <WelcomeBanner />
             )}
 
-            {feed === "closed" ? (
-              <p className="border border-hairline bg-surface px-4 py-6 text-center text-sm text-muted">
-                Le fil ouvre bientôt.
-              </p>
-            ) : feed === "unavailable" ? (
-              <p className="border border-hairline bg-surface px-4 py-6 text-center text-sm text-muted">
-                Le fil est momentanément indisponible. Réessayez dans un instant.
-              </p>
-            ) : posts.length === 0 ? (
-              cursor ? (
-                <p className="border border-hairline bg-surface px-4 py-6 text-center text-sm text-muted">
-                  Plus rien avant celle-ci.
-                </p>
-              ) : (
-                <EmptyFeed connected={Boolean(user)} />
-              )
-            ) : (
-              posts.map((post, index) => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  viewerHandle={user?.handle ?? null}
-                  // Un visiteur n'a besoin d'être invité à s'inscrire qu'une fois,
-                  // pas sur chacune des vingt cartes de la page.
-                  promptSignup={index === 0}
-                />
-              ))
-            )}
-
-            {page?.more ? (
-              <Link
-                href={`/?avant=${posts[posts.length - 1].id}`}
-                className="border border-hairline-strong px-4 py-3.5 text-center font-cond text-sm font-semibold uppercase tracking-[0.06em] text-body hover:text-ink"
-              >
-                Publications plus anciennes
-              </Link>
-            ) : null}
+            <Suspense fallback={<FeedSkeleton />}>
+              <FeedPosts
+                viewerId={user?.id ?? null}
+                viewerHandle={user?.handle ?? null}
+                cursor={cursor}
+              />
+            </Suspense>
 
             {cursor ? (
               <Link href="/" className="py-2 text-center text-sm text-muted underline">
@@ -171,7 +215,9 @@ export default async function Home({
             ) : null}
           </div>
 
-          <SideRail user={user} members={members} />
+          <Suspense fallback={null}>
+            <Rail user={user} />
+          </Suspense>
         </div>
 
         <SiteFooter />

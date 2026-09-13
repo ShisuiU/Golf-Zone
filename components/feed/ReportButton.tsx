@@ -45,7 +45,7 @@ export function ReportButton({
   }
 
   return (
-    <form action={formAction} className="flex flex-wrap items-center gap-2">
+    <form action={formAction} className="animate-rise flex flex-wrap items-center gap-2">
       {postId ? <input type="hidden" name="postId" value={postId} /> : null}
       {commentId ? <input type="hidden" name="commentId" value={commentId} /> : null}
       <input
@@ -59,7 +59,7 @@ export function ReportButton({
       <button
         type="submit"
         disabled={pending}
-        className="min-h-[36px] cursor-pointer border border-hairline-strong px-3 font-cond text-[13px] font-semibold uppercase tracking-[0.05em] text-ink disabled:opacity-60"
+        className="pressable min-h-[36px] cursor-pointer border border-hairline-strong px-3 font-cond text-[13px] font-semibold uppercase tracking-[0.05em] text-ink disabled:opacity-60"
       >
         {pending ? "Envoi…" : "Envoyer"}
       </button>

@@ -41,11 +41,21 @@ export function LikeButton({ postId, count, liked, canInteract }: Props) {
       onClick={onClick}
       aria-pressed={state.liked}
       aria-label={state.liked ? "Je n'aime plus" : "J'aime"}
-      className={`inline-flex min-h-[44px] cursor-pointer items-center gap-2 pr-3 text-sm transition-colors ${
+      className={`pressable inline-flex min-h-[44px] cursor-pointer items-center gap-2 pr-3 text-sm ${
         state.liked ? "text-brand" : "text-muted hover:text-ink"
       }`}
     >
-      <svg width="20" height="18" viewBox="0 0 16 14" fill="none" aria-hidden="true">
+      {/* `key` sur l'état : React remonte le cœur à chaque bascule, ce qui
+          rejoue l'animation. Sans cela elle ne se déclencherait qu'une fois. */}
+      <svg
+        key={String(state.liked)}
+        width="20"
+        height="18"
+        viewBox="0 0 16 14"
+        fill="none"
+        aria-hidden="true"
+        className={state.liked ? "animate-pop" : undefined}
+      >
         <path
           d="M8 13C8 13 1 9 1 4.5C1 2 3 1 5 1C6.5 1 7.5 2 8 3C8.5 2 9.5 1 11 1C13 1 15 2 15 4.5C15 9 8 13 8 13Z"
           fill={state.liked ? "currentColor" : "none"}

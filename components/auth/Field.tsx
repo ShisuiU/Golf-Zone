@@ -30,7 +30,7 @@ export function Field({
       >
         {label}
       </label>
-      <div className="flex items-center border border-hairline bg-graphite focus-within:border-brand">
+      <div className="flex items-center border border-hairline bg-graphite transition-colors duration-150 focus-within:border-brand">
         {prefix ? (
           <span className="border-r border-hairline py-3 pr-3 pl-3 font-mono text-sm text-muted" aria-hidden="true">
             {prefix}

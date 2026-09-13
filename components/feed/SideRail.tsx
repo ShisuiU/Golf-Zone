@@ -23,7 +23,7 @@ export function SideRail({
         {user ? (
           <Link
             href="/profil"
-            className="flex items-center gap-3 border border-hairline bg-surface p-4 hover:border-hairline-strong hover:text-ink"
+            className="card card-link flex items-center gap-3 p-4 hover:text-ink"
           >
             <Avatar handle={user.handle} photoId={user.avatarPhotoId} size={44} />
             <span className="min-w-0">
@@ -38,7 +38,7 @@ export function SideRail({
         ) : null}
 
         {members.length > 0 ? (
-          <section className="border border-hairline bg-surface p-4">
+          <section className="surface p-4">
             <h2 className="mb-3 font-cond text-[13px] font-semibold uppercase tracking-[0.08em] text-faint">
               La communauté
             </h2>
@@ -47,7 +47,7 @@ export function SideRail({
                 <li key={member.id}>
                   <Link
                     href={`/membre/${member.handle}`}
-                    className="flex items-center gap-3 py-2 hover:text-ink"
+                    className="flex items-center gap-3 py-2 transition-colors duration-150 hover:text-ink"
                   >
                     <Avatar handle={member.handle} photoId={member.avatarPhotoId} size={32} />
                     <span className="min-w-0 flex-1">
@@ -71,7 +71,7 @@ export function SideRail({
           </section>
         ) : null}
 
-        <section className="border border-hairline bg-surface p-4">
+        <section className="surface p-4">
           <h2 className="font-cond text-[13px] font-semibold uppercase tracking-[0.08em] text-faint">
             Les duels
           </h2>

@@ -16,7 +16,7 @@ function Bell({ unread }: { unread: number }) {
     <Link
       href="/notifications"
       aria-label={unread > 0 ? `Notifications (${unread} non lues)` : "Notifications"}
-      className="relative flex h-11 w-11 items-center justify-center text-body hover:text-ink"
+      className="pressable relative flex h-11 w-11 items-center justify-center text-body hover:text-ink"
     >
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <path
@@ -28,7 +28,7 @@ function Bell({ unread }: { unread: number }) {
         />
       </svg>
       {unread > 0 ? (
-        <span className="absolute top-1.5 right-1.5 min-w-[17px] rounded-full bg-brand px-1 text-center font-mono text-[10px] leading-[17px] font-bold text-graphite">
+        <span className="animate-pop absolute top-1.5 right-1.5 min-w-[17px] rounded-full bg-brand px-1 text-center font-mono text-[10px] leading-[17px] font-bold text-graphite">
           {unread > 9 ? "9+" : unread}
         </span>
       ) : null}
@@ -60,7 +60,7 @@ export async function SiteHeader() {
             <Link
               key={link.href}
               href={link.href}
-              className="flex min-h-[44px] items-center font-cond text-base font-semibold uppercase tracking-[0.07em] text-body hover:text-ink"
+              className="flex min-h-[44px] items-center font-cond text-base font-semibold uppercase tracking-[0.07em] text-body transition-colors duration-150 hover:text-ink"
             >
               {link.label}
             </Link>
@@ -68,7 +68,7 @@ export async function SiteHeader() {
           {user || !ACCOUNTS_ENABLED ? null : (
             <Link
               href={LOGIN_HREF}
-              className="flex min-h-[44px] items-center font-cond text-base font-semibold uppercase tracking-[0.07em] text-body hover:text-ink"
+              className="flex min-h-[44px] items-center font-cond text-base font-semibold uppercase tracking-[0.07em] text-body transition-colors duration-150 hover:text-ink"
             >
               Connexion
             </Link>
@@ -76,7 +76,7 @@ export async function SiteHeader() {
           {user ? <Bell unread={user.unread} /> : null}
           <Link
             href={primary.href}
-            className="bevel inline-flex min-h-[46px] items-center bg-brand px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-graphite hover:text-graphite"
+            className="pressable bevel inline-flex min-h-[46px] items-center bg-brand px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-graphite hover:text-graphite"
           >
             {primary.label}
           </Link>
@@ -107,12 +107,12 @@ export async function SiteHeader() {
               />
             </svg>
           </summary>
-          <nav className="absolute right-0 z-20 mt-3 flex w-60 flex-col border border-hairline bg-surface p-2">
+          <nav className="animate-rise surface absolute right-0 z-20 mt-3 flex w-60 flex-col p-2">
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="flex min-h-[48px] items-center px-4 font-cond text-base font-semibold uppercase tracking-[0.06em] text-body hover:text-ink"
+                className="flex min-h-[48px] items-center px-4 font-cond text-base font-semibold uppercase tracking-[0.06em] text-body transition-colors duration-150 hover:text-ink"
               >
                 {link.label}
               </Link>
@@ -120,14 +120,14 @@ export async function SiteHeader() {
             {user || !ACCOUNTS_ENABLED ? null : (
               <Link
                 href={LOGIN_HREF}
-                className="flex min-h-[48px] items-center px-4 font-cond text-base font-semibold uppercase tracking-[0.06em] text-body hover:text-ink"
+                className="flex min-h-[48px] items-center px-4 font-cond text-base font-semibold uppercase tracking-[0.06em] text-body transition-colors duration-150 hover:text-ink"
               >
                 Connexion
               </Link>
             )}
             <Link
               href={primary.href}
-              className="mt-2 flex min-h-[48px] items-center justify-center bg-brand px-4 font-cond text-base font-bold uppercase tracking-[0.06em] text-graphite hover:text-graphite"
+              className="pressable mt-2 flex min-h-[48px] items-center justify-center bg-brand px-4 font-cond text-base font-bold uppercase tracking-[0.06em] text-graphite hover:text-graphite"
             >
               {primary.label}
             </Link>

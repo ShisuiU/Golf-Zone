@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Avatar } from "@/components/feed/Avatar";
 import { Time } from "@/components/feed/Time";
+import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { requireUser } from "@/lib/dal";
 import { listNotifications, markNotificationsRead } from "@/lib/db";
@@ -47,7 +48,7 @@ export default async function NotificationsPage() {
               <li key={n.id}>
                 <Link
                   href={`/publication/${n.postId}`}
-                  className={`flex items-center gap-3 border-b border-hairline px-3 py-3.5 hover:text-ink ${
+                  className={`flex items-center gap-3 border-b border-hairline px-3 py-3.5 transition-colors duration-150 hover:bg-surface-2 hover:text-ink ${
                     n.isNew ? "bg-surface" : ""
                   }`}
                 >
@@ -71,6 +72,7 @@ export default async function NotificationsPage() {
             ))}
           </ul>
         )}
+        <SiteFooter />
       </main>
     </div>
   );

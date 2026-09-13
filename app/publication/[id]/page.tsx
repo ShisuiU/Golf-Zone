@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PostCard } from "@/components/feed/PostCard";
+import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getCurrentUser } from "@/lib/dal";
 import { findPost } from "@/lib/db";
@@ -54,6 +55,7 @@ export default async function PublicationPage({ params }: Params) {
             Retour au fil
           </Link>
         </p>
+        <SiteFooter />
       </main>
     </div>
   );

@@ -24,7 +24,7 @@ export default function NotFound() {
         </p>
         <Link
           href="/"
-          className="bevel-sm mt-7 inline-flex min-h-[48px] items-center bg-brand px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-graphite hover:text-graphite"
+          className="pressable bevel-sm mt-7 inline-flex min-h-[48px] items-center bg-brand px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-graphite hover:text-graphite"
         >
           Retour au fil
         </Link>

@@ -34,13 +34,13 @@ export default function Error({
           <button
             type="button"
             onClick={reset}
-            className="bevel-sm min-h-[48px] cursor-pointer bg-brand px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-graphite"
+            className="pressable bevel-sm min-h-[48px] cursor-pointer bg-brand px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-graphite"
           >
             Réessayer
           </button>
           <Link
             href="/"
-            className="inline-flex min-h-[48px] items-center border border-hairline-strong px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-ink hover:text-ink"
+            className="pressable inline-flex min-h-[48px] items-center border border-hairline-strong px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-ink hover:text-ink"
           >
             Retour au fil
           </Link>

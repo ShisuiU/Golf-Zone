@@ -302,6 +302,33 @@ couleur de marque *et* comme camp A d'un duel, **bleu acier** comme camp B, et
 le vert réservé à un duel réellement en cours (inutilisé pour l'instant).
 Titres en Russo One, libellés en Barlow Condensed, relevés en Space Mono.
 
+## Mouvement
+
+Une seule courbe (`--ease-out-firm`) et trois durées : 90 ms à l'appui, 160 ms
+au survol, 260 ms à l'entrée. Sortie franche, sans rebond — l'univers est
+mécanique, pas enfantin.
+
+Trois utilitaires portent l'essentiel : `.surface` (bloc inerte), `.card`
+(+ `.card-link`) pour ce qui est cliquable, `.pressable` pour les commandes.
+Un bloc qui n'est pas cliquable ne réagit pas au survol : ce serait promettre
+une action qui n'existe pas.
+
+Deux mouvements ne sont pas décoratifs :
+
+- **Le cœur** qui bat une fois quand on aime. Le `key` sur l'état force React à
+  remonter l'icône, sans quoi l'animation ne se jouerait qu'au premier clic.
+- **La photo qui se déplace** du fil vers son lien permanent
+  (`<ViewTransition name={photo-<id>}>` des deux côtés). C'est le même objet ;
+  le mouvement le dit mieux qu'un fondu. Attention : un `loading.tsx` à la
+  racine casse ce morphing — la destination se suspend, la paire ne se forme
+  pas, et au passage un squelette de fil clignoterait sur les mentions
+  légales. Le fil est donc mis en attente par un `<Suspense>` local, pas par un
+  fichier de route.
+
+Tout est neutralisé sous `prefers-reduced-motion`, y compris les
+pseudo-éléments de transition de vue, que la règle générale n'atteint pas —
+ils vivent hors de l'arbre du document.
+
 Trois règles apprises en chemin, à respecter si on étend le style :
 
 - Aucun champ ne porte `outline-none`. Les utilitaires Tailwind passent après

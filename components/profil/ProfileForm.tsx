@@ -27,7 +27,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="min-h-[44px] cursor-pointer self-start border border-hairline-strong px-5 font-cond text-sm font-semibold uppercase tracking-[0.06em] text-ink"
+        className="pressable min-h-[44px] cursor-pointer self-start border border-hairline-strong px-5 font-cond text-sm font-semibold uppercase tracking-[0.06em] text-ink"
       >
         Modifier mon profil
       </button>
@@ -149,14 +149,14 @@ export function ProfileForm({ profile }: { profile: Profile }) {
         <button
           type="submit"
           disabled={pending}
-          className="bevel-sm min-h-[46px] cursor-pointer bg-brand px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-graphite disabled:opacity-60"
+          className="pressable bevel-sm min-h-[46px] cursor-pointer bg-brand px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-graphite disabled:opacity-60"
         >
           {pending ? "Enregistrement…" : "Enregistrer"}
         </button>
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="min-h-[46px] cursor-pointer px-2 font-cond text-sm font-semibold uppercase tracking-[0.06em] text-muted hover:text-ink"
+          className="pressable min-h-[46px] cursor-pointer px-2 font-cond text-sm font-semibold uppercase tracking-[0.06em] text-muted hover:text-ink"
         >
           {state.ok ? "Fermer" : "Annuler"}
         </button>

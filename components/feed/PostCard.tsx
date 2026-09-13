@@ -1,3 +1,4 @@
+import { ViewTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { removePost } from "@/app/actions/post";
@@ -21,7 +22,7 @@ export function PostCard({
   const isMine = viewerHandle === post.handle;
 
   return (
-    <article className="border border-hairline bg-surface">
+    <article className="surface">
       <header className="flex items-center gap-3 px-4 py-3">
         <Avatar handle={post.handle} photoId={post.avatarPhotoId} />
         <div className="min-w-0 flex-1">
@@ -52,14 +53,19 @@ export function PostCard({
       </header>
 
       {post.photoId ? (
-        <Image
-          src={`/photos/${post.photoId}`}
-          alt={post.model ? `Golf ${post.model} de @${post.handle}` : `Photo de @${post.handle}`}
-          width={640}
-          height={640}
-          className="max-h-[70vh] w-full bg-graphite object-cover"
-          unoptimized
-        />
+        // Même nom des deux côtés : en ouvrant le lien permanent, la photo se
+        // déplace au lieu de disparaître puis réapparaître ailleurs. C'est le
+        // même objet, autant le dire.
+        <ViewTransition name={`photo-${post.photoId}`} share="morph" default="none">
+          <Image
+            src={`/photos/${post.photoId}`}
+            alt={post.model ? `Golf ${post.model} de @${post.handle}` : `Photo de @${post.handle}`}
+            width={640}
+            height={640}
+            className="max-h-[70vh] w-full bg-graphite object-cover"
+            unoptimized
+          />
+        </ViewTransition>
       ) : null}
 
       {post.caption ? (

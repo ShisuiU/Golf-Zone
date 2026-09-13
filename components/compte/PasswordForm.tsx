@@ -50,7 +50,7 @@ export function PasswordForm() {
       <button
         type="submit"
         disabled={pending}
-        className="bevel-sm min-h-[46px] cursor-pointer self-start bg-brand px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-graphite disabled:opacity-60"
+        className="pressable bevel-sm min-h-[46px] cursor-pointer self-start bg-brand px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-graphite disabled:opacity-60"
       >
         {pending ? "Enregistrement…" : "Changer"}
       </button>

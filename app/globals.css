@@ -29,6 +29,30 @@
   /* Bordures */
   --color-hairline: rgba(255, 255, 255, 0.09);
   --color-hairline-strong: rgba(255, 255, 255, 0.22);
+
+  /* Mouvement — une seule courbe et trois durées pour tout le site.
+     Sortie franche, sans rebond : on est dans un univers mécanique, pas
+     dans un jouet. Tout est neutralisé sous `prefers-reduced-motion`. */
+  --ease-out-firm: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --duration-tap: 90ms;
+  --duration-hover: 160ms;
+  --duration-enter: 260ms;
+
+  --animate-rise: rise var(--duration-enter) var(--ease-out-firm) both;
+  --animate-pop: pop 320ms var(--ease-out-firm);
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+
+  @keyframes pop {
+    40% {
+      transform: scale(1.28);
+    }
+  }
 }
 
 /* Typographie — `inline` est indispensable ici : les variables de next/font
@@ -119,6 +143,68 @@
     border: 1px solid var(--color-hairline);
     border-top: 2px solid var(--color-brand);
   }
+
+  /* Bloc de contenu. Inerte : rien ne doit réagir à un survol si rien n'est
+     cliquable — ce serait promettre une action qui n'existe pas. */
+  .surface {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-hairline);
+  }
+
+  /* Le même bloc, mais cliquable : le liseré s'éclaire au survol. */
+  .card {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-hairline);
+    transition:
+      border-color var(--duration-hover) var(--ease-out-firm),
+      transform var(--duration-hover) var(--ease-out-firm);
+  }
+
+  .card:hover {
+    border-color: var(--color-hairline-strong);
+  }
+
+  /* Réservé aux cartes entièrement cliquables : soulever un bloc qu'on ne
+     peut pas atteindre serait une promesse en l'air. */
+  .card-link:hover {
+    transform: translateY(-1px);
+  }
+
+  /* Commandes : réaction au survol, et surtout à l'appui — c'est l'enfoncement
+     qui donne l'impression que le bouton est physique. */
+  .pressable {
+    transition:
+      filter var(--duration-hover) var(--ease-out-firm),
+      transform var(--duration-tap) var(--ease-out-firm),
+      border-color var(--duration-hover) var(--ease-out-firm),
+      color var(--duration-hover) var(--ease-out-firm);
+  }
+
+  .pressable:hover {
+    filter: brightness(1.08);
+  }
+
+  .pressable:active {
+    transform: translateY(1px);
+  }
+}
+
+/* Morphing d'une photo entre le fil et son lien permanent : c'est le même
+   objet, le mouvement le dit mieux qu'un fondu. Le flou de mi-parcours masque
+   l'interpolation pixel à pixel pendant le redimensionnement. */
+::view-transition-group(.morph) {
+  animation-duration: 320ms;
+  animation-timing-function: var(--ease-out-firm);
+}
+
+::view-transition-image-pair(.morph) {
+  animation-name: morph-blur;
+}
+
+@keyframes morph-blur {
+  30% {
+    filter: blur(3px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -129,5 +215,13 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  /* Y compris le morphing entre pages, que la règle ci-dessus n'atteint pas :
+     les pseudo-éléments de transition de vue vivent hors de l'arbre. */
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
   }
 }

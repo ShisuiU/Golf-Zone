@@ -13,7 +13,7 @@ export default function MentionsPage() {
         <p>
           Zone Golf est un site communautaire non commercial, édité par un particulier.
         </p>
-        <p className="border border-hairline bg-surface p-4 font-mono text-[13px] text-muted">
+        <p className="surface p-4 font-mono text-[13px] text-muted">
           À compléter : nom de l&apos;éditeur et adresse de contact. La loi impose de
           les publier ; tant qu&apos;ils manquent, cette page est incomplète.
         </p>

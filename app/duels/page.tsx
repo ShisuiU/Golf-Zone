@@ -49,7 +49,7 @@ export default async function DuelsPage() {
 
         <ol className="mb-10 grid grid-cols-1 gap-3 lg:grid-cols-3 lg:gap-5">
           {STEPS.map((item) => (
-            <li key={item.step} className="border border-hairline bg-surface p-5 lg:p-6">
+            <li key={item.step} className="surface p-5 lg:p-6">
               <p className="mb-2.5 font-impact text-[24px] text-brand lg:text-[30px]">
                 {item.step}
               </p>

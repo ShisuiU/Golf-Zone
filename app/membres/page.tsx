@@ -38,7 +38,7 @@ export default async function MembresPage() {
             <li key={member.id}>
               <Link
                 href={`/membre/${member.handle}`}
-                className="flex h-full items-center gap-4 border border-hairline bg-surface p-4 hover:border-hairline-strong hover:text-ink"
+                className="card card-link flex h-full items-center gap-4 p-4 hover:text-ink"
               >
                 <Avatar handle={member.handle} photoId={member.avatarPhotoId} size={48} />
                 <div className="min-w-0 flex-1">
