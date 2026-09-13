@@ -92,7 +92,7 @@ export default async function Home() {
 
       <main className="relative mx-auto w-full max-w-[680px] px-4 py-6 lg:py-10">
         <div className="flex flex-col gap-5">
-          {user ? <Composer handle={user.handle} /> : <WelcomeBanner />}
+          {user ? <Composer handle={user.handle} avatarPhotoId={user.avatarPhotoId} /> : <WelcomeBanner />}
 
           {feed === "closed" ? (
             <p className="border border-hairline bg-surface px-4 py-6 text-center text-sm text-muted">

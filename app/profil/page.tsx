@@ -36,7 +36,7 @@ export default async function ProfilPage() {
           <ProfileCard profile={profile} />
           <ProfileForm profile={profile} />
 
-          <Composer handle={user.handle} />
+          <Composer handle={user.handle} avatarPhotoId={profile.avatarPhotoId} />
 
           <h2 className="mt-2 font-cond text-lg font-semibold uppercase tracking-[0.04em] text-body">
             Mes publications

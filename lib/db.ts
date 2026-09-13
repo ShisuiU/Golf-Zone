@@ -116,6 +116,13 @@ function ensureSchema(): Promise<void> {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS car        TEXT NOT NULL DEFAULT '';
       ALTER TABLE users ADD COLUMN IF NOT EXISTS city       TEXT NOT NULL DEFAULT '';
       ALTER TABLE users ADD COLUMN IF NOT EXISTS birth_year INTEGER;
+
+      -- Photo de profil : rangée dans la même table que les photos de
+      -- publication, donc servie par /photos/[id] avec le même cache immuable.
+      -- Elle n'appartient à aucune publication, d'où le dossier facultatif.
+      ALTER TABLE photos ALTER COLUMN dossier_id DROP NOT NULL;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_photo_id INTEGER
+        REFERENCES photos(id) ON DELETE SET NULL;
     `);
   })();
   return schemaReady;
@@ -132,7 +139,7 @@ async function query<T extends Record<string, unknown>>(
 
 /* ------------------------------------------------------------------ users */
 
-export type User = { id: number; email: string; handle: string };
+export type User = { id: number; email: string; handle: string; avatarPhotoId: number | null };
 type UserRow = User & { password_hash: string };
 
 export function normalizeEmail(email: string): string {
@@ -141,7 +148,8 @@ export function normalizeEmail(email: string): string {
 
 export async function findUserByEmail(email: string): Promise<UserRow | undefined> {
   const rows = await query<UserRow>(
-    "SELECT id, email, handle, password_hash FROM users WHERE email = $1",
+    `SELECT id, email, handle, password_hash, avatar_photo_id AS "avatarPhotoId"
+       FROM users WHERE email = $1`,
     [normalizeEmail(email)],
   );
   return rows[0];
@@ -162,7 +170,8 @@ export async function createUser(input: {
   passwordHash: string;
 }): Promise<User> {
   const rows = await query<User>(
-    "INSERT INTO users (email, handle, password_hash) VALUES ($1, $2, $3) RETURNING id, email, handle",
+    `INSERT INTO users (email, handle, password_hash) VALUES ($1, $2, $3)
+     RETURNING id, email, handle, avatar_photo_id AS "avatarPhotoId"`,
     [normalizeEmail(input.email), input.handle, input.passwordHash],
   );
   return rows[0];
@@ -173,6 +182,7 @@ export async function createUser(input: {
 export type Profile = {
   id: number;
   handle: string;
+  avatarPhotoId: number | null;
   bio: string;
   car: string;
   city: string;
@@ -190,6 +200,7 @@ export async function findProfile(handle: string): Promise<Profile | undefined> 
   const rows = await query<Profile>(
     `SELECT u.id,
             u.handle,
+            u.avatar_photo_id AS "avatarPhotoId",
             u.bio,
             u.car,
             u.city,
@@ -217,6 +228,73 @@ export async function updateProfile(
   );
 }
 
+/**
+ * Remplace la photo de profil. L'ancienne est supprimée : une seule est
+ * affichée, la garder ne ferait que remplir la base. Le nouvel enregistrement
+ * a un nouvel identifiant, donc une nouvelle URL — le cache immuable de
+ * /photos/[id] reste correct.
+ */
+export async function setAvatar(
+  userId: number,
+  photo: { data: Buffer; mime: string },
+): Promise<void> {
+  const client = await getPool().connect();
+  try {
+    await client.query("BEGIN");
+    const previous = await client.query<{ avatar_photo_id: number | null }>(
+      "SELECT avatar_photo_id FROM users WHERE id = $1 FOR UPDATE",
+      [userId],
+    );
+    const inserted = await client.query<{ id: number }>(
+      "INSERT INTO photos (dossier_id, data, mime, byte_size) VALUES (NULL, $1, $2, $3) RETURNING id",
+      [photo.data, photo.mime, photo.data.byteLength],
+    );
+    await client.query("UPDATE users SET avatar_photo_id = $2 WHERE id = $1", [
+      userId,
+      inserted.rows[0].id,
+    ]);
+    const old = previous.rows[0]?.avatar_photo_id;
+    if (old) await client.query("DELETE FROM photos WHERE id = $1", [old]);
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export type MemberSummary = {
+  id: number;
+  handle: string;
+  avatarPhotoId: number | null;
+  car: string;
+  city: string;
+  postCount: number;
+  likesReceived: number;
+  createdAt: Date;
+};
+
+/** Annuaire des membres, les plus actifs d'abord. */
+export async function listMembers(): Promise<MemberSummary[]> {
+  return query<MemberSummary>(
+    `SELECT u.id,
+            u.handle,
+            u.avatar_photo_id AS "avatarPhotoId",
+            u.car,
+            u.city,
+            u.created_at AS "createdAt",
+            (SELECT count(*)::int FROM dossiers d WHERE d.user_id = u.id) AS "postCount",
+            (SELECT count(*)::int
+               FROM likes l
+               JOIN dossiers d ON d.id = l.dossier_id
+              WHERE d.user_id = u.id) AS "likesReceived"
+       FROM users u
+      ORDER BY "postCount" DESC, u.created_at
+      LIMIT 200`,
+  );
+}
+
 /* --------------------------------------------------------------- sessions */
 
 export async function insertSession(
@@ -234,7 +312,7 @@ export async function insertSession(
 /** Renvoie le membre d'une session valide, et purge celle qui a expiré. */
 export async function findUserBySessionToken(tokenHash: string): Promise<User | undefined> {
   const rows = await query<User & { expires_at: Date }>(
-    `SELECT u.id, u.email, u.handle, s.expires_at
+    `SELECT u.id, u.email, u.handle, u.avatar_photo_id AS "avatarPhotoId", s.expires_at
        FROM sessions s JOIN users u ON u.id = s.user_id
       WHERE s.token_hash = $1`,
     [tokenHash],
@@ -245,7 +323,7 @@ export async function findUserBySessionToken(tokenHash: string): Promise<User | 
     await deleteSessionByHash(tokenHash);
     return undefined;
   }
-  return { id: row.id, email: row.email, handle: row.handle };
+  return { id: row.id, email: row.email, handle: row.handle, avatarPhotoId: row.avatarPhotoId };
 }
 
 export async function deleteSessionByHash(tokenHash: string): Promise<void> {
@@ -264,6 +342,7 @@ export async function deleteSessionByHash(tokenHash: string): Promise<void> {
 export type Comment = {
   id: number;
   handle: string;
+  avatarPhotoId: number | null;
   body: string;
   createdAt: Date;
 };
@@ -271,6 +350,7 @@ export type Comment = {
 export type FeedEntry = {
   id: number;
   handle: string;
+  avatarPhotoId: number | null;
   model: string | null;
   caption: string;
   photoId: number | null;
@@ -327,6 +407,7 @@ async function listPosts(viewerId: number | null, where: string, params: unknown
   return query<FeedEntry>(
     `SELECT d.id,
             u.handle,
+            u.avatar_photo_id AS "avatarPhotoId",
             d.model,
             d.caption,
             d.created_at AS "createdAt",
@@ -343,6 +424,7 @@ async function listPosts(viewerId: number | null, where: string, params: unknown
                 FROM (
                   SELECT cm.id,
                          cu.handle,
+                         cu.avatar_photo_id AS "avatarPhotoId",
                          cm.body,
                          cm.created_at AS "createdAt"
                     FROM comments cm

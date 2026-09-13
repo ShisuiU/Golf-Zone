@@ -2,7 +2,8 @@
 
 import { useActionState, useState } from "react";
 import { saveProfile, type ProfileState } from "@/app/actions/profile";
-import { MAX_BIO, MAX_CAR, MAX_CITY, MAX_AGE, MIN_AGE } from "@/lib/profile";
+import { AVATAR_MAX_EDGE, MAX_BIO, MAX_CAR, MAX_CITY, MAX_AGE, MIN_AGE } from "@/lib/profile";
+import { PhotoField } from "@/components/profil/PhotoField";
 import type { Profile } from "@/lib/db";
 
 const EMPTY: ProfileState = {};
@@ -40,6 +41,13 @@ export function ProfileForm({ profile }: { profile: Profile }) {
       <h2 className="font-cond text-lg font-semibold uppercase tracking-[0.03em]">
         Modifier mon profil
       </h2>
+
+      <PhotoField
+        name="avatar"
+        label={profile.avatarPhotoId ? "Changer ma photo de profil" : "Photo de profil"}
+        maxEdge={AVATAR_MAX_EDGE}
+        error={state.errors?.avatar}
+      />
 
       <div className="flex flex-col gap-2">
         <label htmlFor="bio" className={LABEL}>

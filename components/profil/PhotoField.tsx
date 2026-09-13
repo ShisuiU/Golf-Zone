@@ -14,9 +14,9 @@ const MAX_BYTES = 2 * 1024 * 1024; // doit rester aligné sur lib/photo.ts
  * évite d'installer une bibliothèque de traitement d'image côté serveur.
  * La validation reste faite côté serveur : ceci n'est qu'un confort.
  */
-async function compress(file: File): Promise<File> {
+async function compress(file: File, maxEdge: number): Promise<File> {
   const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+  const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
 
   // Déjà raisonnable et pas trop lourde : inutile de la réencoder.
   if (scale === 1 && file.size <= 1_500_000) return file;
@@ -43,7 +43,20 @@ function formatSize(bytes: number): string {
     : `${Math.round(bytes / 1024)} Ko`;
 }
 
-export function PhotoField({ error, optional }: { error?: string; optional?: boolean }) {
+export function PhotoField({
+  error,
+  optional,
+  name = "photo",
+  label,
+  maxEdge = MAX_EDGE,
+}: {
+  error?: string;
+  optional?: boolean;
+  /** Permet un second champ image dans la même page (la photo de profil). */
+  name?: string;
+  label?: string;
+  maxEdge?: number;
+}) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string>();
   const [note, setNote] = useState<string>();
@@ -56,7 +69,7 @@ export function PhotoField({ error, optional }: { error?: string; optional?: boo
     setBusy(true);
     try {
       const before = file.size;
-      const compressed = await compress(file);
+      const compressed = await compress(file, maxEdge);
 
       // Remplace le contenu de l'input par la version allégée.
       const transfer = new DataTransfer();
@@ -86,10 +99,10 @@ export function PhotoField({ error, optional }: { error?: string; optional?: boo
   return (
     <div className="flex flex-col gap-2">
       <label
-        htmlFor="photo"
+        htmlFor={name}
         className="font-mono text-[10px] tracking-[0.1em] uppercase text-muted"
       >
-        {optional ? "Photo (facultatif)" : "Photo"}
+        {label ?? (optional ? "Photo (facultatif)" : "Photo")}
       </label>
 
       {preview ? (
@@ -103,21 +116,21 @@ export function PhotoField({ error, optional }: { error?: string; optional?: boo
 
       <input
         ref={inputRef}
-        id="photo"
-        name="photo"
+        id={name}
+        name={name}
         type="file"
         accept="image/jpeg,image/png,image/webp"
         onChange={onPick}
-        aria-describedby={error ? "photo-error" : "photo-hint"}
+        aria-describedby={error ? `${name}-error` : `${name}-hint`}
         aria-invalid={error ? true : undefined}
         className="min-h-[50px] w-full cursor-pointer border border-hairline bg-graphite px-3 py-3 text-sm text-body file:mr-3 file:cursor-pointer file:border-0 file:bg-surface-2 file:px-3 file:py-2 file:font-cond file:text-sm file:font-semibold file:uppercase file:tracking-[0.05em] file:text-ink"
       />
 
-      <p id="photo-hint" className="text-xs text-faint">
+      <p id={`${name}-hint`} className="text-xs text-faint">
         {busy ? "Compression en cours…" : (note ?? "JPEG, PNG ou WebP. Allégée automatiquement.")}
       </p>
       {error ? (
-        <p id="photo-error" className="font-mono text-xs text-brand">
+        <p id={`${name}-error`} className="font-mono text-xs text-brand">
           {error}
         </p>
       ) : null}

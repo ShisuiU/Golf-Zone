@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { commentPost, removeComment, type CommentState } from "@/app/actions/post";
 import { MAX_COMMENT } from "@/lib/post";
+import { Avatar } from "@/components/feed/Avatar";
 import { timeAgo } from "@/components/feed/timeAgo";
 import type { Comment } from "@/lib/db";
 
@@ -29,10 +30,15 @@ export function CommentSection({ postId, comments, viewerHandle }: Props) {
       {comments.length > 0 ? (
         <ul className="flex flex-col gap-2.5 px-4 py-3">
           {comments.map((comment) => (
-            <li key={comment.id} className="text-[14px] leading-relaxed">
-              <span className="font-cond font-semibold tracking-[0.02em] text-ink">
+            <li key={comment.id} className="flex gap-2.5 text-[14px] leading-relaxed">
+              <Avatar handle={comment.handle} photoId={comment.avatarPhotoId} size={26} />
+              <p className="min-w-0 flex-1">
+              <Link
+                href={`/membre/${comment.handle}`}
+                className="font-cond font-semibold tracking-[0.02em] text-ink hover:text-brand"
+              >
                 @{comment.handle}
-              </span>{" "}
+              </Link>{" "}
               <span className="text-body">{comment.body}</span>{" "}
               <span className="font-mono text-[10px] text-faint">
                 {timeAgo(comment.createdAt)}
@@ -48,6 +54,7 @@ export function CommentSection({ postId, comments, viewerHandle }: Props) {
                   </button>
                 </form>
               ) : null}
+              </p>
             </li>
           ))}
         </ul>

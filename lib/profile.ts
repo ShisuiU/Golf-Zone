@@ -25,7 +25,12 @@ export type ProfileFields = {
   birthYear: number | null;
 };
 
-export type ProfileErrors = Partial<Record<"bio" | "car" | "city" | "birthYear" | "form", string>>;
+export type ProfileErrors = Partial<
+  Record<"bio" | "car" | "city" | "birthYear" | "avatar" | "form", string>
+>;
+
+/** Côté client, la photo de profil est réduite à ce format avant l'envoi. */
+export const AVATAR_MAX_EDGE = 512;
 
 /**
  * Valide et normalise les champs bruts du formulaire. Renvoie les erreurs

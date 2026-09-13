@@ -20,7 +20,7 @@ export function PostCard({
   return (
     <article className="border border-hairline bg-surface">
       <header className="flex items-center gap-3 px-4 py-3">
-        <Avatar handle={post.handle} />
+        <Avatar handle={post.handle} photoId={post.avatarPhotoId} />
         <div className="min-w-0 flex-1">
           <Link
             href={`/membre/${post.handle}`}

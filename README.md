@@ -13,9 +13,10 @@ n'est utilisé.
   membre poste une photo *ou* une simple question — beaucoup d'échanges
   n'auront pas d'image.
 - **Comptes** : inscription, connexion, déconnexion, session persistante.
-- **Profils** : fiche (bio, voiture, ville, âge), compteurs de publications et
-  de likes reçus, et le mur des publications du membre. `/profil` est le sien —
-  publication et édition comprises — `/membre/<pseudo>` celui des autres.
+- **Profils** : photo, fiche (bio, voiture, ville, âge), compteurs de
+  publications et de likes reçus, et le mur des publications du membre.
+  `/profil` est le sien — publication et édition comprises —
+  `/membre/<pseudo>` celui des autres, `/membres` l'annuaire de la communauté.
 - **Duels** sur leur propre page `/duels`, annoncés comme non ouverts. Le site
   est d'abord un espace de partage ; la compétition vient en plus.
 
@@ -53,6 +54,7 @@ app/
   duels/           présentation des duels, page dédiée
   profil/          son propre profil : fiche, édition, publication, ses posts
   membre/[handle]/ profil public d'un membre
+  membres/         annuaire de la communauté
   (auth)/          inscription et connexion
   photos/[id]/     sert une photo stockée en base
   actions/         Server Actions (auth.ts, post.ts)
@@ -131,6 +133,16 @@ Les compteurs (publications, likes reçus) sont calculés dans la même requête
 que la fiche. `listPostsOfUser` prend le membre **et** le visiteur en
 paramètres distincts : sur le profil d'un autre, ce sont les likes du visiteur
 qu'il faut refléter.
+
+La **photo de profil** est rangée dans la table `photos`, comme les photos de
+publication, et servie par la même route au même cache immuable. Remplacer sa
+photo crée une nouvelle ligne — donc une nouvelle URL, que les caches ne
+peuvent pas confondre avec l'ancienne — et supprime la précédente dans la même
+transaction. Elle est réduite à 512 px dans le navigateur avant l'envoi.
+
+`/membres` n'ouvre ni cookie ni en-tête : sans `connection()`, Next la
+prérendrait à la construction et l'annuaire resterait figé sur l'état du
+dernier déploiement.
 
 ## Photos
 

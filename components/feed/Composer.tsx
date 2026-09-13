@@ -13,14 +13,20 @@ const EMPTY: PostState = {};
  * texte replié, qui déploie photo et génération au clic. Le texte seul suffit
  * — beaucoup de messages seront des questions, pas des photos.
  */
-export function Composer({ handle }: { handle: string }) {
+export function Composer({
+  handle,
+  avatarPhotoId,
+}: {
+  handle: string;
+  avatarPhotoId: number | null;
+}) {
   const [state, formAction, pending] = useActionState(publishPost, EMPTY);
   const [open, setOpen] = useState(false);
 
   return (
     <form action={formAction} className="border border-hairline bg-surface p-4">
       <div className="flex items-start gap-3">
-        <Avatar handle={handle} size={40} />
+        <Avatar handle={handle} photoId={avatarPhotoId} size={40} />
         <textarea
           name="caption"
           rows={open ? 3 : 1}

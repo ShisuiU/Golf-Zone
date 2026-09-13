@@ -30,7 +30,7 @@ export function ProfileCard({ profile }: { profile: Profile }) {
   return (
     <section className="panel p-5 lg:p-7">
       <div className="flex items-center gap-4">
-        <Avatar handle={profile.handle} size={64} />
+        <Avatar handle={profile.handle} photoId={profile.avatarPhotoId} size={64} />
         <div className="min-w-0">
           <h1 className="font-impact text-[24px] leading-tight break-words lg:text-[30px]">
             @{profile.handle}

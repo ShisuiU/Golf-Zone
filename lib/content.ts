@@ -10,6 +10,7 @@ export const SITE_TAGLINE = "la communauté des propriétaires de Golf";
 
 export const NAV_LINKS = [
   { label: "Le fil", href: "/" },
+  { label: "Membres", href: "/membres" },
   { label: "Duels", href: "/duels" },
 ];
 
