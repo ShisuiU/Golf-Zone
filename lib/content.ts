@@ -16,6 +16,5 @@ export const NAV_LINKS = [
 
 /** Cibles des appels à l'action. */
 export const LOGIN_HREF = "/connexion";
-export const MEMBER_HREF = "/profil";
 
 export const TICKER_ITEMS = ["Toutes générations, Mk1 à Mk8", "Gratuit et sans publicité"];

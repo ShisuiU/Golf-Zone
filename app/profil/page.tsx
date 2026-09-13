@@ -58,12 +58,29 @@ export default async function ProfilPage() {
             ))
           )}
 
-          <p className="mt-4 border-t border-hairline pt-6 text-center text-sm text-muted">
-            <Link href="/compte" className="underline">
-              Mon compte
-            </Link>{" "}
-            — mot de passe, déconnexion, suppression
-          </p>
+          <Link
+            href="/compte"
+            className="card card-link mt-4 flex items-center justify-between gap-4 p-4"
+          >
+            <span>
+              <span className="block font-cond text-[16px] font-semibold uppercase tracking-[0.04em] text-ink">
+                Mon compte
+              </span>
+              <span className="block text-[13px] text-muted">
+                Mot de passe, déconnexion, suppression du compte
+              </span>
+            </span>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 18 18"
+              fill="none"
+              aria-hidden="true"
+              className="shrink-0 text-faint"
+            >
+              <path d="M6 3.5L11.5 9L6 14.5" stroke="currentColor" strokeWidth="1.8" />
+            </svg>
+          </Link>
         </div>
         <SiteFooter />
       </main>

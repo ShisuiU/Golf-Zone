@@ -13,7 +13,7 @@ export function FeedSkeleton({ cards = 3 }: { cards?: number }) {
   return (
     <div aria-hidden="true" className="flex animate-pulse flex-col gap-5">
       {Array.from({ length: cards }, (_, i) => (
-        <article key={i} className="surface">
+        <div key={i} className="surface">
           <div className="flex items-center gap-3 px-4 py-3">
             <span className="h-9 w-9 shrink-0 rounded-full bg-surface-2" />
             <span className="flex flex-col gap-2">
@@ -26,7 +26,7 @@ export function FeedSkeleton({ cards = 3 }: { cards?: number }) {
             <Line w="70%" />
             <Line w="40%" />
           </div>
-        </article>
+        </div>
       ))}
     </div>
   );

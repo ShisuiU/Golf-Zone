@@ -166,6 +166,11 @@ se paierait à chaque vue.
 
 ## Compte
 
+L'entrée se fait par **l'avatar dans l'en-tête**, qui ouvre le menu du membre
+(profil, compte, modération, déconnexion) : c'est là qu'on cherche ses réglages
+sur n'importe quel site. Le menu est un `<details>`, donc utilisable au clavier
+et sans JavaScript — au prix connu de ne pas se refermer en cliquant à côté.
+
 Changer son mot de passe demande l'ancien — sans quoi un appareil resté ouvert
 suffirait à prendre le compte — et déconnecte tous les autres appareils.
 

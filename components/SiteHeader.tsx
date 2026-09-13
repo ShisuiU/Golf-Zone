@@ -1,15 +1,20 @@
 import Link from "next/link";
-import { LOGIN_HREF, MEMBER_HREF, NAV_LINKS, SITE_NAME, TICKER_ITEMS } from "@/lib/content";
+import { logout } from "@/app/actions/auth";
+import { Avatar } from "@/components/feed/Avatar";
+import { LOGIN_HREF, NAV_LINKS, SITE_NAME, TICKER_ITEMS } from "@/lib/content";
 import { getCurrentUser } from "@/lib/dal";
-import { ACCOUNTS_ENABLED, CTA_HREF } from "@/lib/flags";
+import { ACCOUNTS_ENABLED, CTA_HREF, isModerator } from "@/lib/flags";
+import type { User } from "@/lib/db";
 
 /**
  * Nav + bandeau HUD.
  *
- * Le menu mobile est un <details> : accessible au clavier et fonctionnel
+ * Les deux menus sont des <details> : accessibles au clavier et fonctionnels
  * sans JavaScript, donc l'en-tête reste un composant serveur — ce qui lui
- * permet aussi de lire la session pour adapter les liens.
+ * permet aussi de lire la session pour adapter les liens. Contrepartie
+ * connue : ils ne se referment pas en cliquant à côté.
  */
+
 /** Cloche des notifications, avec le nombre de non-lues. */
 function Bell({ unread }: { unread: number }) {
   return (
@@ -36,19 +41,76 @@ function Bell({ unread }: { unread: number }) {
   );
 }
 
+const MENU_ITEM =
+  "flex min-h-[48px] items-center px-4 font-cond text-base font-semibold uppercase tracking-[0.06em] text-body transition-colors duration-150 hover:bg-surface-2 hover:text-ink";
+
+/** Les entrées du compte, communes au menu de bureau et au menu mobile. */
+function AccountLinks({ user }: { user: User }) {
+  return (
+    <>
+      <Link href="/profil" className={MENU_ITEM}>
+        Mon profil
+      </Link>
+      <Link href="/compte" className={MENU_ITEM}>
+        Mon compte
+      </Link>
+      {isModerator(user.handle) ? (
+        <Link href="/moderation" className={MENU_ITEM}>
+          Modération
+        </Link>
+      ) : null}
+      <form action={logout} className="border-t border-hairline">
+        <button type="submit" className={`${MENU_ITEM} w-full cursor-pointer text-left`}>
+          Se déconnecter
+        </button>
+      </form>
+    </>
+  );
+}
+
+/**
+ * Menu du compte, sur grand écran.
+ *
+ * L'avatar est le point d'entrée attendu : c'est là que l'on cherche ses
+ * réglages sur n'importe quel site. Auparavant, « Mon compte » n'existait
+ * qu'en bas de la page de profil — autant dire nulle part.
+ */
+function AccountMenu({ user }: { user: User }) {
+  return (
+    <details className="group relative [&_summary::-webkit-details-marker]:hidden">
+      <summary
+        aria-label="Mon compte"
+        className="pressable flex cursor-pointer list-none items-center gap-2 rounded-full border border-hairline py-1 pr-3 pl-1 hover:border-hairline-strong"
+      >
+        <Avatar handle={user.handle} photoId={user.avatarPhotoId} size={32} />
+        <span className="max-w-[120px] truncate font-cond text-[15px] font-semibold tracking-[0.02em] text-ink">
+          @{user.handle}
+        </span>
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 12 12"
+          fill="none"
+          aria-hidden="true"
+          className="shrink-0 text-muted transition-transform duration-150 group-open:rotate-180"
+        >
+          <path d="M2 4.5L6 8.5L10 4.5" stroke="currentColor" strokeWidth="1.6" />
+        </svg>
+      </summary>
+      <nav className="animate-rise surface absolute right-0 z-20 mt-3 flex w-56 flex-col p-2">
+        <AccountLinks user={user} />
+      </nav>
+    </details>
+  );
+}
+
 export async function SiteHeader() {
   const user = await getCurrentUser();
-
-  // Sans comptes ouverts, le bouton principal renvoie à la présentation
-  // plutôt que vers une inscription qui n'existe pas encore.
-  const primary = user
-    ? { href: MEMBER_HREF, label: "Mon profil" }
-    : { href: CTA_HREF, label: "Poster une photo" };
 
   return (
     <header className="relative">
       <div className="flex items-center justify-between gap-4 border-b border-hairline px-5 py-4 lg:px-16 lg:py-6">
-        <Link href="/" className="flex items-center gap-3 hover:text-ink">
+        <Link href="/" className="pressable flex items-center gap-3 hover:text-ink">
           <span className="font-impact text-lg tracking-[0.01em] text-ink lg:text-[23px]">
             {SITE_NAME.toUpperCase()}
           </span>
@@ -65,74 +127,93 @@ export async function SiteHeader() {
               {link.label}
             </Link>
           ))}
-          {user || !ACCOUNTS_ENABLED ? null : (
-            <Link
-              href={LOGIN_HREF}
-              className="flex min-h-[44px] items-center font-cond text-base font-semibold uppercase tracking-[0.07em] text-body transition-colors duration-150 hover:text-ink"
-            >
-              Connexion
-            </Link>
+
+          {user ? (
+            <>
+              <Bell unread={user.unread} />
+              <AccountMenu user={user} />
+            </>
+          ) : (
+            <>
+              {ACCOUNTS_ENABLED ? (
+                <Link
+                  href={LOGIN_HREF}
+                  className="flex min-h-[44px] items-center font-cond text-base font-semibold uppercase tracking-[0.07em] text-body transition-colors duration-150 hover:text-ink"
+                >
+                  Connexion
+                </Link>
+              ) : null}
+              <Link
+                href={CTA_HREF}
+                className="pressable bevel inline-flex min-h-[46px] items-center bg-brand px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-graphite hover:text-graphite"
+              >
+                Rejoindre
+              </Link>
+            </>
           )}
-          {user ? <Bell unread={user.unread} /> : null}
-          <Link
-            href={primary.href}
-            className="pressable bevel inline-flex min-h-[46px] items-center bg-brand px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-graphite hover:text-graphite"
-          >
-            {primary.label}
-          </Link>
         </nav>
 
         {/* Mobile */}
         <div className="flex items-center lg:hidden">
           {user ? <Bell unread={user.unread} /> : null}
-        <details className="group relative lg:hidden [&_summary::-webkit-details-marker]:hidden">
-          <summary
-            aria-label="Ouvrir le menu"
-            className="flex h-11 w-11 cursor-pointer items-center justify-center -mr-2.5 list-none"
-          >
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                d="M4 7H20M4 12H20M4 17H20"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                className="text-ink group-open:hidden"
-              />
-              <path
-                d="M6 6L18 18M18 6L6 18"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                className="hidden text-ink group-open:block"
-              />
-            </svg>
-          </summary>
-          <nav className="animate-rise surface absolute right-0 z-20 mt-3 flex w-60 flex-col p-2">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="flex min-h-[48px] items-center px-4 font-cond text-base font-semibold uppercase tracking-[0.06em] text-body transition-colors duration-150 hover:text-ink"
-              >
-                {link.label}
-              </Link>
-            ))}
-            {user || !ACCOUNTS_ENABLED ? null : (
-              <Link
-                href={LOGIN_HREF}
-                className="flex min-h-[48px] items-center px-4 font-cond text-base font-semibold uppercase tracking-[0.06em] text-body transition-colors duration-150 hover:text-ink"
-              >
-                Connexion
-              </Link>
-            )}
-            <Link
-              href={primary.href}
-              className="pressable mt-2 flex min-h-[48px] items-center justify-center bg-brand px-4 font-cond text-base font-bold uppercase tracking-[0.06em] text-graphite hover:text-graphite"
+          <details className="group relative [&_summary::-webkit-details-marker]:hidden">
+            <summary
+              aria-label="Ouvrir le menu"
+              className="-mr-2.5 flex h-11 w-11 cursor-pointer list-none items-center justify-center"
             >
-              {primary.label}
-            </Link>
-          </nav>
-        </details>
+              {/* Connecté, c'est l'avatar qui ouvre le menu : le même repère
+                  que sur grand écran, et une barre de moins à interpréter. */}
+              {user ? (
+                <span className="group-open:opacity-60">
+                  <Avatar handle={user.handle} photoId={user.avatarPhotoId} size={32} />
+                </span>
+              ) : (
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path
+                    d="M4 7H20M4 12H20M4 17H20"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    className="text-ink group-open:hidden"
+                  />
+                  <path
+                    d="M6 6L18 18M18 6L6 18"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    className="hidden text-ink group-open:block"
+                  />
+                </svg>
+              )}
+            </summary>
+            <nav className="animate-rise surface absolute right-0 z-20 mt-3 flex w-64 flex-col p-2">
+              {NAV_LINKS.map((link) => (
+                <Link key={link.href} href={link.href} className={MENU_ITEM}>
+                  {link.label}
+                </Link>
+              ))}
+
+              {user ? (
+                <span className="mt-2 border-t border-hairline pt-2">
+                  <AccountLinks user={user} />
+                </span>
+              ) : (
+                <>
+                  {ACCOUNTS_ENABLED ? (
+                    <Link href={LOGIN_HREF} className={MENU_ITEM}>
+                      Connexion
+                    </Link>
+                  ) : null}
+                  <Link
+                    href={CTA_HREF}
+                    className="pressable mt-2 flex min-h-[48px] items-center justify-center bg-brand px-4 font-cond text-base font-bold uppercase tracking-[0.06em] text-graphite hover:text-graphite"
+                  >
+                    Rejoindre
+                  </Link>
+                </>
+              )}
+            </nav>
+          </details>
         </div>
       </div>
 
@@ -162,7 +243,7 @@ export async function SiteHeader() {
               ))}
         </div>
         <span className="hidden font-mono text-[11px] text-faint lg:inline">
-          {user ? `Connecté · @${user.handle}` : "Communauté indépendante de Volkswagen"}
+          {user ? "Espace membre" : "Communauté indépendante de Volkswagen"}
         </span>
       </div>
     </header>
