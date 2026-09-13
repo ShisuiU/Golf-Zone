@@ -175,6 +175,11 @@ Le bouton « j'aime » met à jour le compteur **avant** la réponse du serveur
 l'impression d'un réseau social. Un membre ne peut aimer qu'une fois : c'est
 la clé primaire `(dossier_id, user_id)` qui l'impose, pas le code.
 
+Une publication se **corrige** sur place : une faute de frappe n'oblige plus à
+supprimer et republier, ce qui emportait likes et commentaires. La correction
+est signalée sous le pseudo — on ne réécrit pas le passé en silence. La photo,
+elle, ne se change pas : remplacer l'image, c'est une autre publication.
+
 Un visiteur non connecté voit tout le fil ; ses clics sur « j'aime » ou
 « commenter » l'amènent à l'inscription.
 
@@ -412,6 +417,10 @@ en desktop et mobile) ont été produites en amont sur un canvas séparé.
 Restent à faire :
 
 - **Contenu** : plusieurs photos par publication, recherche.
+- **Abus** : rien ne limite le rythme de publication ni la création de comptes
+  en série ; seule la connexion est freinée.
+- **Entretien** : les sessions expirées et les jetons consommés ne sont jamais
+  purgés, et aucune alerte ne prévient d'une panne.
 - **Mentions légales** : le nom et l'adresse de contact de l'éditeur y sont
   encore à compléter — la loi impose de les publier.
 

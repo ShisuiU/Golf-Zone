@@ -4,6 +4,7 @@ import Link from "next/link";
 import { removePost } from "@/app/actions/post";
 import { Avatar } from "@/components/feed/Avatar";
 import { CommentSection } from "@/components/feed/CommentSection";
+import { EditPost } from "@/components/feed/EditPost";
 import { LikeButton } from "@/components/feed/LikeButton";
 import { ReportButton } from "@/components/feed/ReportButton";
 import { Time } from "@/components/feed/Time";
@@ -23,7 +24,7 @@ export function PostCard({
 
   return (
     <article className="surface">
-      <header className="flex items-center gap-3 px-4 py-3">
+      <header className="flex flex-wrap items-center gap-3 px-4 py-3">
         <Avatar handle={post.handle} photoId={post.avatarPhotoId} />
         <div className="min-w-0 flex-1">
           <Link
@@ -37,8 +38,13 @@ export function PostCard({
             <Link href={`/publication/${post.id}`} className="inline-block py-0.5 hover:text-brand">
               <Time date={post.createdAt} />
             </Link>
+            {/* Une correction se voit : on ne réécrit pas le passé en silence. */}
+            {post.editedAt ? <span title="Publication corrigée"> · modifiée</span> : null}
           </p>
         </div>
+        {isMine ? (
+          <EditPost postId={post.id} model={post.model} caption={post.caption} />
+        ) : null}
         {isMine ? (
           <form action={removePost}>
             <input type="hidden" name="id" value={post.id} />

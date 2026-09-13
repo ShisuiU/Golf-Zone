@@ -120,3 +120,48 @@ test("le menu du compte mène au compte et déconnecte", async ({ page }) => {
   await page.waitForURL("/");
   await expect(page.getByRole("link", { name: "Rejoindre" }).first()).toBeVisible();
 });
+
+test("l'auteur corrige sa publication sans perdre les réactions", async ({ browser }) => {
+  const auteur = await browser.newPage();
+  await signup(auteur, "maladroite");
+  await publish(auteur, "Premère sortie après le kit suspension.");
+
+  const lectrice = await browser.newPage();
+  await signup(lectrice, "attentive");
+  await lectrice.goto("/");
+  await lectrice.locator("article button[aria-pressed]").first().click();
+  await lectrice.locator("article input[name=body]").fill("Belle photo.");
+  await lectrice.locator('article button:has-text("Envoyer")').click();
+  await expect(lectrice.getByText("Belle photo.")).toBeVisible();
+  await lectrice.close();
+
+  await auteur.goto("/");
+  await auteur.locator('article button:has-text("Modifier")').click();
+  await auteur.locator("article textarea").fill("Première sortie après le kit suspension.");
+  await auteur.locator('article select').selectOption("Mk7");
+  await auteur.locator('article button:has-text("Enregistrer")').click();
+  await expect(auteur.getByText("Première sortie après le kit suspension.")).toBeVisible();
+
+  await auteur.reload();
+  const carte = auteur.locator("article").first();
+  await expect(carte).toContainText("Première sortie");
+  await expect(carte).toContainText("Golf Mk7");
+  // La correction est signalée, et rien n'a été perdu au passage.
+  await expect(carte).toContainText("modifiée");
+  await expect(carte.locator("button[aria-pressed]")).toContainText("1");
+  await expect(carte).toContainText("Belle photo.");
+  await auteur.close();
+});
+
+test("on ne peut pas corriger la publication d'un autre", async ({ browser }) => {
+  const auteur = await browser.newPage();
+  await signup(auteur, "titulaire");
+  await publish(auteur, "Publication protégée.");
+  await auteur.close();
+
+  const autre = await browser.newPage();
+  await signup(autre, "intruse");
+  await autre.goto("/");
+  await expect(autre.locator('article button:has-text("Modifier")')).toHaveCount(0);
+  await autre.close();
+});

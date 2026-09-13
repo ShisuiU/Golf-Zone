@@ -1,7 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { addComment, createPost, deleteCommentOwnedBy, deletePostOwnedBy, toggleLike } from "@/lib/db";
+import {
+  addComment,
+  createPost,
+  deleteCommentOwnedBy,
+  deletePostOwnedBy,
+  toggleLike,
+  updatePostOwnedBy,
+} from "@/lib/db";
 import { requireUser } from "@/lib/dal";
 import { ACCOUNTS_ENABLED } from "@/lib/flags";
 import { validatePhoto } from "@/lib/photo";
@@ -58,6 +65,42 @@ export async function publishPost(_prev: PostState, formData: FormData): Promise
 
   revalidatePath("/");
   revalidatePath("/profil");
+  return { ok: true };
+}
+
+/**
+ * Corriger sa publication. Les mêmes règles qu'à la création : la génération
+ * est facultative, la légende plafonnée. La photo, elle, ne se change pas
+ * ici — une image de remplacement, c'est une autre publication.
+ */
+export async function editPost(_prev: PostState, formData: FormData): Promise<PostState> {
+  if (!ACCOUNTS_ENABLED) return CLOSED;
+
+  const user = await requireUser();
+  const id = Number(formData.get("id"));
+  const rawModel = String(formData.get("model") ?? "").trim();
+  const caption = String(formData.get("caption") ?? "").trim();
+  const values = { model: rawModel, caption };
+
+  if (!Number.isInteger(id)) return { errors: { form: "Publication introuvable." }, values };
+  if (rawModel && !isGeneration(rawModel)) {
+    return { errors: { model: "Génération inconnue." }, values };
+  }
+  if (caption.length > MAX_CAPTION) {
+    return { errors: { caption: `${MAX_CAPTION} caractères maximum.` }, values };
+  }
+
+  try {
+    const done = await updatePostOwnedBy(id, user.id, { model: rawModel || null, caption });
+    if (!done) return { errors: { form: "Publication introuvable." }, values };
+  } catch (error) {
+    console.error("Correction impossible :", error);
+    return { errors: { form: "Enregistrement impossible. Réessayez." }, values };
+  }
+
+  revalidatePath("/");
+  revalidatePath("/profil");
+  revalidatePath(`/publication/${id}`);
   return { ok: true };
 }
 

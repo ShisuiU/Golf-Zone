@@ -187,6 +187,10 @@ function ensureSchema(): Promise<void> {
         CHECK ((dossier_id IS NULL) <> (comment_id IS NULL))
       );
       CREATE INDEX IF NOT EXISTS reports_open ON reports (handled_at, created_at DESC);
+
+      -- Une publication corrigée le dit : la date de modification est
+      -- affichée, on ne réécrit pas le passé en silence.
+      ALTER TABLE dossiers ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ;
     `);
   })().catch((error) => {
     schemaReady = undefined;
@@ -636,6 +640,8 @@ export type FeedEntry = {
   caption: string;
   photoId: number | null;
   createdAt: Date;
+  /** Renseignée si la publication a été corrigée après coup. */
+  editedAt: Date | null;
   likeCount: number;
   likedByMe: boolean;
   /** Nombre total, qui peut dépasser ce que `comments` contient. */
@@ -712,6 +718,7 @@ async function listPosts(
             d.model,
             d.caption,
             d.created_at AS "createdAt",
+            d.edited_at AS "editedAt",
             (SELECT p.id FROM photos p
               WHERE p.dossier_id = d.id
               ORDER BY p.created_at DESC LIMIT 1) AS "photoId",
@@ -797,6 +804,23 @@ export type StoredPhoto = { data: Buffer; mime: string };
 export async function findPhoto(id: number): Promise<StoredPhoto | undefined> {
   const rows = await query<StoredPhoto>("SELECT data, mime FROM photos WHERE id = $1", [id]);
   return rows[0];
+}
+
+/**
+ * Corrige une publication. Le filtre sur le propriétaire est dans la requête :
+ * un identifiant deviné ne suffit pas, et rien ne dépend de l'appelant.
+ */
+export async function updatePostOwnedBy(
+  postId: number,
+  userId: number,
+  fields: { model: string | null; caption: string },
+): Promise<boolean> {
+  const rows = await query(
+    `UPDATE dossiers SET model = $3, caption = $4, edited_at = now()
+      WHERE id = $1 AND user_id = $2 RETURNING id`,
+    [postId, userId, fields.model, fields.caption],
+  );
+  return rows.length > 0;
 }
 
 /** Aime ou retire son like. Renvoie l'état après coup. */
