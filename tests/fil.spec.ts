@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { closeDb, openAccountMenu, publish, resetDb, signup } from "./helpers";
+import { closeDb, openAccountMenu, publish, resetDb, seedPosts, signup } from "./helpers";
 
 test.beforeEach(resetDb);
 test.afterAll(closeDb);
@@ -60,7 +60,10 @@ test("le fil ne joint que les derniers commentaires et renvoie au reste", async 
 
 test("le fil se pagine par curseur", async ({ page }) => {
   await signup(page, "prolifique");
-  for (let i = 1; i <= 22; i++) await publish(page, `Publication numéro ${i}`);
+  await seedPosts(
+    "prolifique",
+    Array.from({ length: 22 }, (_, i) => `Publication numéro ${i + 1}`),
+  );
 
   await page.goto("/");
   await expect(page.locator("article")).toHaveCount(20);

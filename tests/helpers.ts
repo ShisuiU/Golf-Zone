@@ -103,3 +103,23 @@ export async function openAccountMenu(page: Page) {
   await page.locator("header summary:visible").click();
   return page.locator("header details[open] nav");
 }
+
+/**
+ * Publie en base, sans passer par l'interface.
+ *
+ * Pour un scénario qui a besoin de vingt publications — la pagination, par
+ * exemple — les poster une à une prendrait vingt secondes, et surtout se
+ * heurterait au plafond de dix par heure, qui n'est pas le sujet du test.
+ * Les dates sont espacées d'une minute pour que l'ordre du fil soit stable.
+ */
+export async function seedPosts(handle: string, captions: string[]) {
+  const { rows } = await db().query("SELECT id FROM users WHERE handle = $1", [handle]);
+  const userId = rows[0].id;
+  for (const [index, caption] of captions.entries()) {
+    await db().query(
+      `INSERT INTO dossiers (user_id, model, caption, created_at)
+       VALUES ($1, '', $2, now() - ($3 || ' minutes')::interval)`,
+      [userId, caption, String(captions.length - index)],
+    );
+  }
+}

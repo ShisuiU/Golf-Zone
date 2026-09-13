@@ -120,7 +120,14 @@ test("une carte a la même largeur dans le fil et sur son lien permanent", async
     const dansLeFil = await carte.evaluate((e) => (e as HTMLElement).offsetWidth);
     await carte.getByRole("link", { name: /il y a|à l'instant/ }).click();
     await page.waitForURL(/\/publication\//);
-    const surSaPage = await page.locator("article").first().evaluate((e) => (e as HTMLElement).offsetWidth);
+    // La photo se déplace d'une page à l'autre : mesurée pendant la
+    // transition, WebKit renvoie 0. On attend que la carte soit posée.
+    const arrivee = page.locator("article").first();
+    await expect(arrivee).toBeVisible();
+    await expect
+      .poll(() => arrivee.evaluate((e) => (e as HTMLElement).offsetWidth))
+      .toBeGreaterThan(0);
+    const surSaPage = await arrivee.evaluate((e) => (e as HTMLElement).offsetWidth);
     expect(dansLeFil, `largeur de la carte à ${largeur}px`).toBe(surSaPage);
   }
 });
