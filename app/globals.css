@@ -94,6 +94,27 @@
 }
 
 @layer utilities {
+  /* Révélation au défilement, sans bibliothèque.
+     `animation-timeline: view()` fait le travail nativement là où il existe ;
+     ailleurs le contenu est simplement là, ce qui est le bon repli. Le site
+     n'a aucune dépendance d'animation et n'en gagne pas une pour une page. */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .reveal {
+        animation: rise-far linear both;
+        animation-timeline: view();
+        animation-range: entry 0% entry 45%;
+      }
+    }
+  }
+
+  @keyframes rise-far {
+    from {
+      opacity: 0;
+      transform: translateY(28px);
+    }
+  }
+
   /* Grille technique de fond, héritée de la direction « Atelier ». */
   .tech-grid {
     background-image:

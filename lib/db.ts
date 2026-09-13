@@ -597,6 +597,45 @@ export async function setAvatar(
   }
 }
 
+/* ------------------------------------------------------------------ vitrine */
+
+export type ShowcaseShot = {
+  postId: number;
+  photoId: number;
+  handle: string;
+  model: string | null;
+  car: string;
+};
+
+/**
+ * Dernières photos publiées, pour la page d'accueil des visiteurs.
+ *
+ * Une page qui vend une communauté de voitures se montre avec les voitures de
+ * la communauté. Pas de photo de banque d'images, pas de maquette dessinée :
+ * ce sont les vraies publications, et le jour où il n'y en a aucune, la page
+ * le dit au lieu d'afficher des cases vides.
+ */
+export async function listShowcase(limit = 7): Promise<ShowcaseShot[]> {
+  return query<ShowcaseShot>(
+    `SELECT d.id AS "postId", p.id AS "photoId", u.handle, d.model, u.car
+       FROM photos p
+       JOIN dossiers d ON d.id = p.dossier_id
+       JOIN users u ON u.id = d.user_id
+      ORDER BY d.created_at DESC
+      LIMIT $1`,
+    [limit],
+  );
+}
+
+/** Combien de membres, combien de publications. Deux nombres, une requête. */
+export async function communityCounts(): Promise<{ members: number; posts: number }> {
+  const rows = await query<{ members: number; posts: number }>(
+    `SELECT (SELECT count(*)::int FROM users) AS members,
+            (SELECT count(*)::int FROM dossiers) AS posts`,
+  );
+  return rows[0] ?? { members: 0, posts: 0 };
+}
+
 export type MemberSummary = {
   id: number;
   handle: string;
