@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
-import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { logout } from "@/app/actions/auth";
-import { removePost } from "@/app/actions/post";
-import { PostForm } from "@/components/profil/PostForm";
+import { Composer } from "@/components/feed/Composer";
+import { PostCard } from "@/components/feed/PostCard";
+import { ProfileCard } from "@/components/profil/ProfileCard";
+import { ProfileForm } from "@/components/profil/ProfileForm";
+import { SiteHeader } from "@/components/SiteHeader";
 import { requireUser } from "@/lib/dal";
-import { listPostsOfUser } from "@/lib/db";
+import { findProfile, listPostsOfUser } from "@/lib/db";
 import { ACCOUNTS_ENABLED } from "@/lib/flags";
-import { SITE_NAME } from "@/lib/content";
 
 export const metadata: Metadata = {
   title: "Mon profil — Zone Golf",
@@ -17,99 +17,55 @@ export const metadata: Metadata = {
 export default async function ProfilPage() {
   if (!ACCOUNTS_ENABLED) notFound();
   const user = await requireUser();
-  const posts = await listPostsOfUser(user.id);
+
+  const [profile, posts] = await Promise.all([
+    findProfile(user.handle),
+    listPostsOfUser(user.id, user.id),
+  ]);
+  // La session vient d'être validée : sans fiche, c'est la base qui a changé
+  // sous nos pieds.
+  if (!profile) notFound();
 
   return (
     <div className="relative min-h-screen overflow-hidden">
       <div aria-hidden="true" className="tech-grid pointer-events-none absolute inset-0" />
+      <SiteHeader />
 
-      <header className="relative flex items-center justify-between gap-4 border-b border-hairline px-5 py-4 lg:px-16 lg:py-6">
-        <Link href="/" className="flex items-center gap-3 hover:text-ink">
-          <span className="font-impact text-lg text-ink lg:text-[23px]">
-            {SITE_NAME.toUpperCase()}
-          </span>
-        </Link>
-        <form action={logout}>
-          <button
-            type="submit"
-            className="min-h-[44px] cursor-pointer border border-hairline-strong px-4 font-cond text-sm font-semibold uppercase tracking-[0.06em] text-body hover:text-ink"
-          >
-            Se déconnecter
-          </button>
-        </form>
-      </header>
+      <main className="relative mx-auto w-full max-w-[680px] px-4 py-6 lg:py-10">
+        <div className="flex flex-col gap-5">
+          <ProfileCard profile={profile} />
+          <ProfileForm profile={profile} />
 
-      <main className="relative mx-auto w-full max-w-[900px] px-5 py-10 lg:py-16">
-        <h1 className="mb-2 font-impact text-[30px] lg:text-[42px]">@{user.handle}</h1>
-        <p className="mb-10 text-[15px] leading-relaxed text-body">
-          Vos photos apparaissent sur le fil d&apos;accueil dès que vous les publiez.
-        </p>
+          <Composer handle={user.handle} />
 
-        <section className="panel mb-10 p-6 lg:p-8">
-          <h2 className="mb-6 font-cond text-xl font-semibold uppercase tracking-[0.03em]">
-            Poster une photo
-          </h2>
-          <PostForm />
-        </section>
-
-        <section>
-          <h2 className="mb-5 font-cond text-xl font-semibold uppercase tracking-[0.03em]">
-            Mes photos <span className="font-mono text-sm text-faint">({posts.length})</span>
+          <h2 className="mt-2 font-cond text-lg font-semibold uppercase tracking-[0.04em] text-body">
+            Mes publications
           </h2>
 
           {posts.length === 0 ? (
-            <div className="flex flex-col gap-3 border border-dashed border-hairline-strong px-4 py-10 text-center">
-              <span className="font-cond text-lg font-semibold uppercase tracking-[0.04em] text-faint">
-                Aucune photo pour le moment
-              </span>
-              <span className="text-sm text-muted">
-                Publiez la première avec le formulaire ci-dessus.
-              </span>
+            <div className="border border-dashed border-hairline-strong px-4 py-10 text-center">
+              <p className="font-cond text-lg font-semibold uppercase tracking-[0.04em] text-faint">
+                Rien de publié pour l&apos;instant
+              </p>
+              <p className="mt-2 text-sm text-muted">
+                Votre première publication apparaîtra ici et sur le fil d&apos;accueil.
+              </p>
             </div>
           ) : (
-            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {posts.map((post) => (
-                <li key={post.id} className="border border-hairline bg-surface">
-                  {post.photoId ? (
-                    <Image
-                      src={`/photos/${post.photoId}`}
-                      alt={`Golf ${post.model} de @${post.handle}`}
-                      width={400}
-                      height={300}
-                      className="h-44 w-full object-cover"
-                      unoptimized
-                    />
-                  ) : null}
-                  <div className="p-4">
-                    <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.05em] text-faint">
-                      {post.model}
-                    </p>
-                    {post.caption ? (
-                      <p className="mb-3 text-[13px] leading-relaxed text-muted">
-                        {post.caption}
-                      </p>
-                    ) : null}
-                    <form action={removePost}>
-                      <input type="hidden" name="id" value={post.id} />
-                      <button
-                        type="submit"
-                        className="min-h-[40px] cursor-pointer font-mono text-[11px] uppercase tracking-[0.05em] text-faint hover:text-brand"
-                      >
-                        Supprimer
-                      </button>
-                    </form>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            posts.map((post) => (
+              <PostCard key={post.id} post={post} viewerHandle={user.handle} />
+            ))
           )}
-        </section>
 
-        <p className="mt-10 text-sm text-muted">
-          <Link href="/" className="underline">
-            Retour à l&apos;accueil
-          </Link>
-        </p>
+          <form action={logout} className="mt-4 border-t border-hairline pt-6 text-center">
+            <button
+              type="submit"
+              className="min-h-[44px] cursor-pointer px-4 font-cond text-sm font-semibold uppercase tracking-[0.06em] text-muted hover:text-ink"
+            >
+              Se déconnecter
+            </button>
+          </form>
+        </div>
       </main>
     </div>
   );

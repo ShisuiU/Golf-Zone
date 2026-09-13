@@ -1,8 +1,8 @@
 # Zone Golf
 
-Site communautaire pour les propriétaires de Volkswagen Golf : chaque voiture a
-son dossier photo, et à terme des **manches 1v1** où la communauté vote pour
-départager deux Golf.
+Réseau social pour les propriétaires de Volkswagen Golf : un fil où l'on montre
+sa voiture, pose ses questions, commente et aime celles des autres — et, à
+terme, des **duels** où la communauté vote pour départager deux photos.
 
 Projet de fans, **non affilié à Volkswagen AG** — aucun logo ni marque officielle
 n'est utilisé.
@@ -12,19 +12,20 @@ n'est utilisé.
 - **Fil social** en page d'accueil : publications, likes, commentaires. Un
   membre poste une photo *ou* une simple question — beaucoup d'échanges
   n'auront pas d'image.
-- **Comptes** : inscription, connexion, déconnexion, session persistante,
-  profil `/profil`.
+- **Comptes** : inscription, connexion, déconnexion, session persistante.
+- **Profils** : fiche (bio, voiture, ville, âge), compteurs de publications et
+  de likes reçus, et le mur des publications du membre. `/profil` est le sien —
+  publication et édition comprises — `/membre/<pseudo>` celui des autres.
 - **Duels** sur leur propre page `/duels`, annoncés comme non ouverts. Le site
   est d'abord un espace de partage ; la compétition vient en plus.
 
 Tout cela s'active avec `DATABASE_URL`. Sans base configurée, le site tourne
-en **mode vitrine** : la landing s'affiche avec des dossiers d'exemple, et rien
-n'invite à créer un compte qui ne pourrait pas être conservé.
+en **mode vitrine** : les pages s'affichent, le fil annonce qu'il ouvre bientôt,
+et rien n'invite à créer un compte qui ne pourrait pas être conservé.
 
-Par honnêteté vis-à-vis des visiteurs, aucun chiffre n'est inventé : le relevé
-de votes affiche `— · —` et « vote fermé », le classement montre trois places
-« à prendre » avec `— pts`, et la seule barre de votes remplie est étiquetée
-« exemple de relevé — illustration ».
+Par honnêteté vis-à-vis des visiteurs, aucun chiffre n'est inventé : aucune
+publication d'exemple ne se mêle aux vraies, et l'aperçu des duels affiche
+`— · —` plutôt qu'un score fictif.
 
 ## Démarrer
 
@@ -50,23 +51,26 @@ app/
   globals.css      tokens de design + utilitaires (grille, livrée, biseaux)
   page.tsx         le fil (page d'accueil)
   duels/           présentation des duels, page dédiée
-  garage/          espace membre : dépôt et liste des dossiers
+  profil/          son propre profil : fiche, édition, publication, ses posts
+  membre/[handle]/ profil public d'un membre
+  (auth)/          inscription et connexion
   photos/[id]/     sert une photo stockée en base
-  actions/         Server Actions (auth.ts, dossier.ts)
+  actions/         Server Actions (auth.ts, post.ts)
 components/
   SiteHeader.tsx   nav + bandeau HUD (menu mobile en <details>, sans JS)
-  Roster.tsx       « derniers engagés » : dossiers réels, ou exemples si vide
+  feed/            Composer, PostCard, LikeButton, CommentSection, Avatar
   auth/            formulaires d'inscription et de connexion
-  garage/          formulaire de dépôt + champ photo avec compression client
+  profil/          fiche affichée, formulaire d'édition, champ photo compressé
 lib/
-  db.ts            tout le SQL (users, sessions, dossiers, photos)
+  db.ts            tout le SQL (users, sessions, dossiers, photos, likes, comments)
   flags.ts         mode vitrine ou communauté, selon DATABASE_URL
   password.ts      hachage scrypt des mots de passe
   session.ts       création / lecture / destruction de session
   dal.ts           getCurrentUser() et requireUser()
   photo.ts         validation des images déposées
-  dossier.ts       règles partagées formulaire / serveur
-  content.ts       textes et dossiers d'exemple
+  post.ts          règles partagées formulaire / serveur (générations, longueurs)
+  profile.ts       validation de la fiche de profil
+  content.ts       textes de l'en-tête et libellés partagés
 proxy.ts           pré-filtrage des routes membres
 ```
 
@@ -94,10 +98,9 @@ SQL est confiné à `lib/db.ts`.
 
 ### Mode vitrine
 
-Sans `DATABASE_URL`, `/inscription`, `/connexion` et `/garage` répondent 404,
-les Server Actions refusent les appels directs, les appels à l'action pointent
-vers la section « manche » au lieu d'une route inexistante, aucune connexion
-n'est ouverte, et la landing est prérendue statiquement. `ZONE_GOLF_ACCOUNTS=off`
+Sans `DATABASE_URL`, `/inscription`, `/connexion` et `/profil` répondent 404,
+les Server Actions refusent les appels directs (une action reste appelable même
+quand sa page a disparu), et aucune connexion à la base n'est ouverte. `ZONE_GOLF_ACCOUNTS=off`
 force ce mode même avec une base (maintenance).
 
 Ces valeurs sont lues à la construction pour les pages prérendues : après les
@@ -116,6 +119,18 @@ la clé primaire `(dossier_id, user_id)` qui l'impose, pas le code.
 
 Un visiteur non connecté voit tout le fil ; ses clics sur « j'aime » ou
 « commenter » l'amènent à l'inscription.
+
+## Profils
+
+Le pseudo d'une publication mène au profil de son auteur. La fiche stocke
+l'**année de naissance** et non l'âge : un âge en base serait faux dès le
+premier anniversaire venu. Tous les champs sont facultatifs — une fiche vide
+n'affiche pas une rangée de tirets, seulement ce qui est renseigné.
+
+Les compteurs (publications, likes reçus) sont calculés dans la même requête
+que la fiche. `listPostsOfUser` prend le membre **et** le visiteur en
+paramètres distincts : sur le profil d'un autre, ce sont les likes du visiteur
+qu'il faut refléter.
 
 ## Photos
 
@@ -173,7 +188,7 @@ on s'en approchera, il faudra sortir les images vers un stockage objet
 (Vercel Blob, Cloudflare R2, ou le Storage de Supabase) ; seul `lib/db.ts` et
 la route `/photos/[id]` sont concernés.
 
-## Direction visuelle — « Le Banc »
+## Direction visuelle
 
 Fusion d'un univers de garage technique et d'un univers de compétition
 sport/gaming : base graphite avec grille technique, **orange sécurité** comme
@@ -198,8 +213,8 @@ en desktop et mobile) ont été produites en amont sur un canvas séparé.
 
 1. ~~Comptes et authentification.~~
 2. ~~Upload de photos et dossiers voiture.~~
-3. Manches 1v1 : appariement, vote (1 membre = 1 voix), verdict, points.
-4. Classement de saison alimenté par les résultats.
+3. ~~Fil social : publications, likes, commentaires.~~
+4. Duels : appariement, vote (1 membre = 1 voix), verdict.
 
 Côté photos, à prévoir quand le volume montera : plusieurs photos par dossier,
 pagination du feed, et modération.
@@ -208,5 +223,5 @@ pagination du feed, et modération.
 réinitialisation de mot de passe, limitation du nombre de tentatives de
 connexion, et migration vers une base gérée.
 
-Points encore ouverts : la durée d'une manche, le barème de points et la
+Points encore ouverts : la durée d'un duel, le barème de points et la
 nature des récompenses (volontairement laissés de côté pour l'instant).

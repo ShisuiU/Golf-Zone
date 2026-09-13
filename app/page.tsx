@@ -4,14 +4,21 @@ import { PostCard } from "@/components/feed/PostCard";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getCurrentUser } from "@/lib/dal";
 import { listFeed, type FeedEntry } from "@/lib/db";
-import { LIVE_FEED } from "@/lib/flags";
+import { ACCOUNTS_ENABLED, LIVE_FEED } from "@/lib/flags";
 import { SITE_NAME } from "@/lib/content";
 
 /** Le fil ne doit jamais bloquer la page : la base peut être endormie. */
 const FEED_TIMEOUT_MS = 2_500;
 
-async function safeFeed(viewerId: number | null): Promise<FeedEntry[] | "unavailable"> {
-  if (!LIVE_FEED) return "unavailable";
+/**
+ * `"closed"` (aucune base configurée) et `"unavailable"` (base injoignable)
+ * ne disent pas la même chose au visiteur : le premier est un site pas encore
+ * ouvert, le second une panne passagère.
+ */
+type FeedState = FeedEntry[] | "closed" | "unavailable";
+
+async function safeFeed(viewerId: number | null): Promise<FeedState> {
+  if (!LIVE_FEED) return "closed";
   const timeout = new Promise<"timeout">((r) => setTimeout(() => r("timeout"), FEED_TIMEOUT_MS));
   try {
     const result = await Promise.race([listFeed(viewerId), timeout]);
@@ -33,24 +40,27 @@ function WelcomeBanner() {
       <h1 className="mb-3 font-impact text-[26px] leading-tight lg:text-[32px]">
         La communauté des propriétaires de Golf.
       </h1>
-      <p className="mb-5 text-[15px] leading-relaxed text-body">
+      <p className="text-[15px] leading-relaxed text-body">
         Montrez votre voiture, posez vos questions, commentez celles des autres.
         Toutes les générations, de la Mk1 à la Mk8.
       </p>
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <Link
-          href="/inscription"
-          className="bevel-sm inline-flex min-h-[48px] items-center justify-center bg-brand px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-graphite hover:text-graphite"
-        >
-          Créer mon compte
-        </Link>
-        <Link
-          href="/connexion"
-          className="inline-flex min-h-[48px] items-center justify-center border border-hairline-strong px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-ink hover:text-ink"
-        >
-          Se connecter
-        </Link>
-      </div>
+      {/* Sans comptes ouverts, ces deux liens mèneraient à des pages en 404. */}
+      {ACCOUNTS_ENABLED ? (
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+          <Link
+            href="/inscription"
+            className="bevel-sm inline-flex min-h-[48px] items-center justify-center bg-brand px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-graphite hover:text-graphite"
+          >
+            Créer mon compte
+          </Link>
+          <Link
+            href="/connexion"
+            className="inline-flex min-h-[48px] items-center justify-center border border-hairline-strong px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-ink hover:text-ink"
+          >
+            Se connecter
+          </Link>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -73,7 +83,7 @@ function EmptyFeed({ connected }: { connected: boolean }) {
 export default async function Home() {
   const user = await getCurrentUser();
   const feed = await safeFeed(user?.id ?? null);
-  const posts = feed === "unavailable" ? [] : feed;
+  const posts = Array.isArray(feed) ? feed : [];
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -84,7 +94,11 @@ export default async function Home() {
         <div className="flex flex-col gap-5">
           {user ? <Composer handle={user.handle} /> : <WelcomeBanner />}
 
-          {feed === "unavailable" ? (
+          {feed === "closed" ? (
+            <p className="border border-hairline bg-surface px-4 py-6 text-center text-sm text-muted">
+              Le fil ouvre bientôt.
+            </p>
+          ) : feed === "unavailable" ? (
             <p className="border border-hairline bg-surface px-4 py-6 text-center text-sm text-muted">
               Le fil est momentanément indisponible. Réessayez dans un instant.
             </p>

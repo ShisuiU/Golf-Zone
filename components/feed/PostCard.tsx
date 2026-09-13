@@ -1,4 +1,6 @@
 import Image from "next/image";
+import Link from "next/link";
+import { removePost } from "@/app/actions/post";
 import { Avatar } from "@/components/feed/Avatar";
 import { CommentSection } from "@/components/feed/CommentSection";
 import { LikeButton } from "@/components/feed/LikeButton";
@@ -13,17 +15,35 @@ export function PostCard({
   post: FeedEntry;
   viewerHandle: string | null;
 }) {
+  const isMine = viewerHandle === post.handle;
+
   return (
     <article className="border border-hairline bg-surface">
       <header className="flex items-center gap-3 px-4 py-3">
         <Avatar handle={post.handle} />
         <div className="min-w-0 flex-1">
-          <p className="font-cond text-[16px] font-semibold tracking-[0.02em]">@{post.handle}</p>
+          <Link
+            href={`/membre/${post.handle}`}
+            className="font-cond text-[16px] font-semibold tracking-[0.02em] text-ink hover:text-brand"
+          >
+            @{post.handle}
+          </Link>
           <p className="font-mono text-[10px] uppercase tracking-[0.05em] text-faint">
             {post.model ? `Golf ${post.model} · ` : ""}
             {timeAgo(post.createdAt)}
           </p>
         </div>
+        {isMine ? (
+          <form action={removePost}>
+            <input type="hidden" name="id" value={post.id} />
+            <button
+              type="submit"
+              className="min-h-[40px] cursor-pointer px-1 font-mono text-[11px] uppercase tracking-[0.05em] text-faint hover:text-brand"
+            >
+              Supprimer
+            </button>
+          </form>
+        ) : null}
       </header>
 
       {post.photoId ? (

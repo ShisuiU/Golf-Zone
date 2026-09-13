@@ -109,6 +109,13 @@ function ensureSchema(): Promise<void> {
         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
       );
       CREATE INDEX IF NOT EXISTS comments_dossier ON comments (dossier_id, created_at);
+
+      -- Fiche de profil. On garde l'année de naissance et non l'âge : un âge
+      -- stocké devient faux au premier anniversaire venu.
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS bio        TEXT NOT NULL DEFAULT '';
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS car        TEXT NOT NULL DEFAULT '';
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS city       TEXT NOT NULL DEFAULT '';
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS birth_year INTEGER;
     `);
   })();
   return schemaReady;
@@ -159,6 +166,55 @@ export async function createUser(input: {
     [normalizeEmail(input.email), input.handle, input.passwordHash],
   );
   return rows[0];
+}
+
+/* --------------------------------------------------------------- profils */
+
+export type Profile = {
+  id: number;
+  handle: string;
+  bio: string;
+  car: string;
+  city: string;
+  birthYear: number | null;
+  createdAt: Date;
+  postCount: number;
+  likesReceived: number;
+};
+
+/**
+ * Fiche complète d'un membre, compteurs inclus : une seule requête, comme
+ * pour le fil. Les likes reçus se comptent sur toutes ses publications.
+ */
+export async function findProfile(handle: string): Promise<Profile | undefined> {
+  const rows = await query<Profile>(
+    `SELECT u.id,
+            u.handle,
+            u.bio,
+            u.car,
+            u.city,
+            u.birth_year AS "birthYear",
+            u.created_at AS "createdAt",
+            (SELECT count(*)::int FROM dossiers d WHERE d.user_id = u.id) AS "postCount",
+            (SELECT count(*)::int
+               FROM likes l
+               JOIN dossiers d ON d.id = l.dossier_id
+              WHERE d.user_id = u.id) AS "likesReceived"
+       FROM users u
+      WHERE lower(u.handle) = lower($1)`,
+    [handle],
+  );
+  return rows[0];
+}
+
+export async function updateProfile(
+  userId: number,
+  fields: { bio: string; car: string; city: string; birthYear: number | null },
+): Promise<void> {
+  await query(
+    "UPDATE users SET bio = $2, car = $3, city = $4, birth_year = $5 WHERE id = $1",
+    [userId, fields.bio, fields.car, fields.city, fields.birthYear],
+  );
 }
 
 /* --------------------------------------------------------------- sessions */
@@ -310,14 +366,16 @@ export async function listFeed(viewerId: number | null): Promise<FeedEntry[]> {
   return listPosts(viewerId, "", []);
 }
 
-/** Publications d'un membre. */
-export async function listPostsOfUser(userId: number): Promise<FeedEntry[]> {
-  return listPosts(userId, "WHERE d.user_id = $2", [userId]);
-}
-
-export async function countPosts(): Promise<number> {
-  const rows = await query<{ count: string }>("SELECT count(*)::text AS count FROM dossiers");
-  return Number(rows[0]?.count ?? 0);
+/**
+ * Publications d'un membre. `viewerId` reste distinct de `userId` : sur le
+ * profil d'un autre membre, ce sont bien les likes du visiteur qu'il faut
+ * refléter, pas ceux de l'auteur.
+ */
+export async function listPostsOfUser(
+  userId: number,
+  viewerId: number | null,
+): Promise<FeedEntry[]> {
+  return listPosts(viewerId, "WHERE d.user_id = $2", [userId]);
 }
 
 export type StoredPhoto = { data: Buffer; mime: string };
