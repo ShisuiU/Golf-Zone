@@ -1,22 +1,10 @@
-import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { connection } from "next/server";
-import { SiteFooter } from "@/components/SiteFooter";
-import { SiteHeader } from "@/components/SiteHeader";
 import { Avatar } from "@/components/feed/Avatar";
 import { communityCounts, listMembers, listShowcase, type ShowcaseShot } from "@/lib/db";
-import { ACCOUNTS_ENABLED } from "@/lib/flags";
-
-export const metadata: Metadata = {
-  title: "Zone Golf — la communauté des propriétaires de Golf",
-  description:
-    "Montrez votre Golf, posez vos questions, commentez celles des autres. Toutes les générations, de la Mk1 à la Mk8.",
-};
 
 /**
- * Page d'accueil des visiteurs.
+ * Les sections de la page d'accueil, montrées aux visiteurs.
  *
  * Jusqu'ici, quelqu'un qui arrivait sur Zone Golf tombait directement sur le
  * fil, avec un encart de trois lignes pour toute explication. Le fil est un
@@ -28,34 +16,32 @@ export const metadata: Metadata = {
  * communauté de voitures, c'est la seule illustration honnête — et quand il
  * n'y a encore rien à montrer, la page le dit.
  */
-export default async function AccueilPage() {
-  if (!ACCOUNTS_ENABLED) notFound();
-  await connection();
+/** Une base endormie ne doit pas faire échouer la page : elle s'affiche sans. */
+async function sansCasse<T>(promesse: Promise<T>, repli: T): Promise<T> {
+  try {
+    return await promesse;
+  } catch (error) {
+    console.error("Accueil : donnée indisponible :", error);
+    return repli;
+  }
+}
 
+export async function Landing() {
   const [shots, counts, membres] = await Promise.all([
-    listShowcase(6),
-    communityCounts(),
-    listMembers(8),
+    sansCasse(listShowcase(6), []),
+    sansCasse(communityCounts(), { members: 0, posts: 0 }),
+    sansCasse(listMembers(8), []),
   ]);
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden">
-      <div aria-hidden="true" className="tech-grid pointer-events-none absolute inset-0" />
-      <SiteHeader />
-
-      <main id="contenu" tabIndex={-1} className="relative flex flex-1 flex-col">
-        <Hero shot={shots[0]} membres={counts.members} />
-        <Mur shots={shots.slice(1)} publications={counts.posts} />
-        <CeQuOnFait />
-        <Membres membres={membres} total={counts.members} />
-        <Duels />
-        <Rejoindre />
-
-        <div className="mx-auto w-full max-w-[1180px] px-5 lg:px-10">
-          <SiteFooter />
-        </div>
-      </main>
-    </div>
+    <>
+      <Hero shot={shots[0]} membres={counts.members} />
+      <Mur shots={shots.slice(1)} publications={counts.posts} />
+      <CeQuOnFait />
+      <Membres membres={membres} total={counts.members} />
+      <Duels />
+      <Rejoindre />
+    </>
   );
 }
 
@@ -87,7 +73,7 @@ function Hero({ shot, membres }: { shot: ShowcaseShot | undefined; membres: numb
             Rejoindre
           </Link>
           <Link
-            href="/"
+            href="/fil"
             className="pressable inline-flex min-h-[54px] items-center justify-center border border-hairline-strong px-8 font-cond text-[16px] font-bold uppercase tracking-[0.06em] text-ink hover:border-brand hover:text-ink"
           >
             Voir le fil

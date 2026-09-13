@@ -109,6 +109,13 @@ function AccountMenu({ user }: { user: User }) {
 export async function SiteHeader() {
   const user = await getCurrentUser();
 
+  // « Le fil » ne mène pas au même endroit selon qui clique : la racine
+  // montre le fil à un membre et la présentation du site à un visiteur, qui
+  // trouve le fil à `/fil`.
+  const liens = NAV_LINKS.map((lien) =>
+    lien.href === "/" && !user ? { ...lien, href: "/fil" } : lien,
+  );
+
   return (
     <header className="relative">
       {/* Premier arrêt de tabulation du site. Sans lui, atteindre le contenu
@@ -131,7 +138,7 @@ export async function SiteHeader() {
 
         {/* Desktop */}
         <nav className="hidden items-center gap-8 lg:flex">
-          {NAV_LINKS.map((link) => (
+          {liens.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -200,7 +207,7 @@ export async function SiteHeader() {
               )}
             </summary>
             <nav className="animate-rise surface absolute right-0 z-20 mt-3 flex w-64 flex-col p-2">
-              {NAV_LINKS.map((link) => (
+              {liens.map((link) => (
                 <Link key={link.href} href={link.href} className={MENU_ITEM}>
                   {link.label}
                 </Link>

@@ -78,6 +78,7 @@ export async function publishPost(_prev: PostState, formData: FormData): Promise
   await noteQuotaAction(QUOTAS.publication, user.id);
 
   revalidatePath("/");
+  revalidatePath("/fil");
   revalidatePath("/profil");
   return { ok: true };
 }
@@ -113,6 +114,7 @@ export async function editPost(_prev: PostState, formData: FormData): Promise<Po
   }
 
   revalidatePath("/");
+  revalidatePath("/fil");
   revalidatePath("/profil");
   revalidatePath(`/publication/${id}`);
   return { ok: true };
@@ -127,6 +129,7 @@ export async function removePost(formData: FormData): Promise<void> {
   // La requête filtre sur le propriétaire : un identifiant deviné ne suffit pas.
   await deletePostOwnedBy(id, user.id);
   revalidatePath("/");
+  revalidatePath("/fil");
   revalidatePath("/profil");
 }
 
@@ -138,6 +141,7 @@ export async function likePost(postId: number): Promise<{ liked: boolean } | nul
 
   const liked = await toggleLike(postId, user.id);
   revalidatePath("/");
+  revalidatePath("/fil");
   revalidatePath("/profil");
   return { liked };
 }
@@ -168,6 +172,7 @@ export async function commentPost(
   await addComment(postId, user.id, body);
   await noteQuotaAction(QUOTAS.commentaire, user.id);
   revalidatePath("/");
+  revalidatePath("/fil");
   revalidatePath("/profil");
   return {};
 }
@@ -180,5 +185,6 @@ export async function removeComment(formData: FormData): Promise<void> {
 
   await deleteCommentOwnedBy(id, user.id);
   revalidatePath("/");
+  revalidatePath("/fil");
   revalidatePath("/profil");
 }

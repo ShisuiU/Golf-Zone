@@ -83,7 +83,9 @@ test("un visiteur lit tout mais doit s'inscrire pour agir", async ({ browser, pa
   await publish(membre, "Bienvenue à tous.");
   await membre.close();
 
-  await page.goto("/");
+  // Un visiteur trouve la présentation du site sur la racine, et le fil à
+  // `/fil`, où il peut tout lire sans compte.
+  await page.goto("/fil");
   await expect(page.locator("article")).toContainText("Bienvenue à tous");
   // L'invitation ne se répète pas sur chaque carte.
   await expect(page.getByText("pour aimer et commenter")).toHaveCount(1);
@@ -167,4 +169,31 @@ test("on ne peut pas corriger la publication d'un autre", async ({ browser }) =>
   await autre.goto("/");
   await expect(autre.locator('article button:has-text("Modifier")')).toHaveCount(0);
   await autre.close();
+});
+
+test("la racine présente le site à un visiteur et montre le fil à un membre", async ({
+  browser,
+  page,
+}) => {
+  const membre = await browser.newPage();
+  await signup(membre, "arrive");
+  await publish(membre, "Une publication visible dans le fil.");
+
+  // Le membre : son fil, directement.
+  await membre.goto("/");
+  await expect(membre.locator("article")).toContainText("Une publication visible");
+  await expect(membre.locator("main")).not.toContainText("mérite mieux");
+  await membre.close();
+
+  // Le visiteur : ce qu'est le site, et un chemin vers le fil.
+  await page.goto("/");
+  await expect(page.locator("h1")).toContainText("mérite mieux");
+  await expect(page.locator("article")).toHaveCount(0);
+  await page.getByRole("link", { name: "Voir le fil" }).click();
+  await page.waitForURL("**/fil");
+  await expect(page.locator("article")).toContainText("Une publication visible");
+
+  // Et « Le fil » dans l'en-tête l'y emmène aussi, plutôt qu'à la racine.
+  await page.goto("/membres");
+  await expect(page.locator('header a[href="/fil"]').first()).toBeVisible();
 });

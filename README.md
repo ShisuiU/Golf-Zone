@@ -167,6 +167,26 @@ force ce mode même avec une base (maintenance).
 Ces valeurs sont lues à la construction pour les pages prérendues : après les
 avoir changées, il faut **reconstruire / redéployer**.
 
+## La racine, selon qui regarde
+
+À un membre, `/` montre son fil : il sait où il est, il vient lire. À un
+visiteur, elle montre ce qu'est Zone Golf. Jusqu'ici tout le monde tombait sur
+le fil, avec un encart de trois lignes pour toute explication — un outil qui
+suppose qu'on sait déjà où on est.
+
+Le fil reste entièrement lisible sans compte, à **`/fil`** : on lit les
+publications, les commentaires et les profils avant de décider de s'inscrire.
+« Le fil » dans l'en-tête mène à `/` pour un membre et à `/fil` pour un
+visiteur, pour que le lien tienne sa promesse dans les deux cas. Quand les
+comptes sont coupés, la racine montre le fil à tout le monde : il n'y a pas de
+session à lire, et une page qui invite à s'inscrire mènerait à un 404.
+
+Les images de la page d'accueil sont **les publications des membres**, tirées
+de la base en direct : la dernière photo en grand, les cinq précédentes en
+mosaïque. Un site qui vend une communauté de voitures se montre avec les
+voitures de la communauté, pas avec une banque d'images. Sans photo publiée,
+la page le dit au lieu d'afficher un cadre vide.
+
 ## Le fil
 
 Une seule requête ramène les publications, leurs compteurs de likes et leurs
