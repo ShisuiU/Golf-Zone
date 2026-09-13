@@ -213,6 +213,12 @@
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    /* Indispensable, et pas seulement par symétrie : les cartes du fil sont
+       décalées par un `animation-delay`, et avec un remplissage `both` elles
+       restent à l'état de départ — opacité zéro — pendant toute la durée du
+       décalage. Sans cette ligne, une partie du fil serait invisible chez qui
+       demande moins de mouvement. */
+    animation-delay: -1ms !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }

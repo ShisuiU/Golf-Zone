@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Une seule exécution par branche : un nouveau push annule la précédente.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verifier:
+    runs-on: ubuntu-latest
+
+    # Le site tourne sur PostgreSQL en développement comme en production :
+    # le tester sur autre chose ne prouverait qu'à moitié qu'il fonctionne.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: zonegolf_test
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+          - 5432:5432
+
+    env:
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/zonegolf_test
+      # Un pseudo de test doit pouvoir ouvrir la file de modération.
+      ZONE_GOLF_MODERATEURS: moderateur
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Analyse statique
+        run: |
+          npm run lint
+          npx tsc --noEmit
+
+      - name: Construction
+        run: npm run build
+
+      - name: Navigateur de test
+        run: npx playwright install --with-deps chromium
+
+      - name: Tests de bout en bout
+        run: npm test
+
+      - name: Rapport en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapport-playwright
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

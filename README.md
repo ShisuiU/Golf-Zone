@@ -44,7 +44,35 @@ cp .env.example .env.local   # renseigner DATABASE_URL pour activer les comptes
 npm run dev                  # http://localhost:3000
 ```
 
-Autres commandes : `npm run build`, `npm run start`, `npm run lint`.
+Autres commandes : `npm run build`, `npm run start`, `npm run lint`, `npm test`.
+
+## Tests
+
+Une suite de bout en bout, dans un vrai navigateur (`tests/`, Playwright) :
+authentification et verrouillage des tentatives, fil, likes, commentaires et
+pagination, profils, photos, modération, et une passe d'apparence — un seul
+titre et un pied de page par écran, aucun débordement à 390 px comme à 1440 px,
+anneau de focus visible sur tout ce qui s'atteint au clavier, mouvement coupé
+quand le système le demande.
+
+```bash
+createdb zonegolf_test
+DATABASE_URL=postgres://…/zonegolf_test npm run build
+DATABASE_URL=postgres://…/zonegolf_test npm test
+```
+
+Les tests partagent une base : un seul ouvrier, et une table rase entre chaque
+scénario. Le **schéma appartient à l'application**, qui le crée au premier
+accès ; les tests la sollicitent une fois plutôt que de recopier le DDL, une
+copie finissant toujours par diverger en silence.
+
+`CHROMIUM_PATH` permet d'utiliser un navigateur déjà présent sur la machine au
+lieu de celui que Playwright installe.
+
+La même suite tourne à chaque push et sur chaque pull request
+(`.github/workflows/ci.yml`), avec un PostgreSQL de service : lint, types,
+construction, puis les tests. En cas d'échec, le rapport est joint à
+l'exécution.
 
 ## Stack
 

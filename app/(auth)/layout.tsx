@@ -14,7 +14,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <span className="font-impact text-lg text-ink">{SITE_NAME.toUpperCase()}</span>
         </Link>
         {children}
-        <p className="mt-10 text-center text-[13px] text-muted">
+        <footer className="mt-10 text-center text-[13px] text-muted">
           <Link href="/" className="inline-flex min-h-[40px] items-center px-2 hover:text-ink">
             Retour au fil
           </Link>
@@ -24,7 +24,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           >
             Mentions légales
           </Link>
-        </p>
+        </footer>
       </div>
     </div>
   );
