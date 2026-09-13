@@ -34,9 +34,12 @@ export async function closeDb() {
 async function waitForSchema() {
   if (schemaReady) return;
   for (let essai = 0; essai < 30; essai++) {
-    await fetch(`${BASE}/membres`).catch(() => undefined);
-    const { rows } = await db().query("SELECT to_regclass('public.users') AS table");
-    if (rows[0].table !== null) {
+    // Une page qui lit la base répond 200 : le schéma est donc entièrement
+    // appliqué. Inspecter une table nommée ferait manquer les suivantes —
+    // c'est ce qui est arrivé quand `rate_limits` est apparue, la sonde
+    // s'arrêtant à l'existence de `users`.
+    const reponse = await fetch(`${BASE}/membres`).catch(() => undefined);
+    if (reponse?.ok) {
       schemaReady = true;
       return;
     }
@@ -50,6 +53,7 @@ export async function resetDb() {
   await waitForSchema();
   await db().query("TRUNCATE users CASCADE");
   await db().query("DELETE FROM login_attempts");
+  await db().query("DELETE FROM rate_limits");
 }
 
 export const PASSWORD = "motdepasse-solide-42";

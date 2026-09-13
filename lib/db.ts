@@ -173,6 +173,15 @@ function ensureSchema(): Promise<void> {
         updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
       );
 
+      -- Quotas : combien d'actions réussies sur une fenêtre de temps. Distinct
+      -- de login_attempts, qui compte des échecs et pose un verrou ; ici on
+      -- compte des réussites, et la fenêtre s'ouvre à la première.
+      CREATE TABLE IF NOT EXISTS rate_limits (
+        key        TEXT PRIMARY KEY,
+        used       INTEGER NOT NULL DEFAULT 0,
+        window_end TIMESTAMPTZ NOT NULL
+      );
+
       -- Signalements. Le rapporteur peut disparaître sans emporter le
       -- signalement (SET NULL), mais un contenu supprimé emporte le sien :
       -- il n'y a plus rien à modérer.
@@ -368,6 +377,62 @@ export async function lockedFor(keys: string[]): Promise<number> {
 /** Une connexion réussie remet les compteurs à zéro. */
 export async function clearLoginFailures(keys: string[]): Promise<void> {
   await query("DELETE FROM login_attempts WHERE key = ANY($1)", [keys]);
+}
+
+/* ------------------------------------------------------------------ quotas */
+
+/**
+ * Secondes avant que le quota se libère, 0 s'il reste de la marge.
+ *
+ * Fenêtre fixe, pas glissante : elle s'ouvre à la première action et dure le
+ * temps prévu. C'est moins précis qu'une fenêtre glissante, mais ça tient en
+ * une ligne de SQL et ça s'explique à un membre en une phrase.
+ */
+export async function quotaWait(key: string, limit: number): Promise<number> {
+  const rows = await query<{ seconds: number }>(
+    `SELECT ceil(extract(epoch FROM window_end - now()))::int AS seconds
+       FROM rate_limits
+      WHERE key = $1 AND window_end > now() AND used >= $2`,
+    [key, limit],
+  );
+  return rows[0]?.seconds ?? 0;
+}
+
+/** Décompte une action réussie. */
+export async function noteQuotaUse(key: string, windowMinutes: number): Promise<void> {
+  await query(
+    `INSERT INTO rate_limits (key, used, window_end)
+     VALUES ($1, 1, now() + ($2 || ' minutes')::interval)
+     ON CONFLICT (key) DO UPDATE
+        SET used = CASE WHEN rate_limits.window_end <= now() THEN 1
+                        ELSE rate_limits.used + 1 END,
+            window_end = CASE WHEN rate_limits.window_end <= now()
+                              THEN now() + ($2 || ' minutes')::interval
+                              ELSE rate_limits.window_end END`,
+    [key, String(windowMinutes)],
+  );
+}
+
+/* ---------------------------------------------------------------- entretien */
+
+/**
+ * Efface ce qui n'a plus de raison d'être : sessions périmées, jetons
+ * consommés ou expirés, compteurs dormants. Rien de tout cela n'est encore
+ * utilisé par le site — un jeton consommé est refusé par `spendToken` qu'il
+ * existe ou non — mais ces lignes s'accumulaient sans fin, et deux d'entre
+ * elles portent une adresse IP.
+ */
+export async function purgeExpired(): Promise<Record<string, number>> {
+  await ensureSchema();
+  const compte = async (sql: string) => (await getPool().query(sql)).rowCount ?? 0;
+  return {
+    sessions: await compte("DELETE FROM sessions WHERE expires_at < now()"),
+    jetons: await compte("DELETE FROM tokens WHERE used_at IS NOT NULL OR expires_at < now()"),
+    connexions: await compte(
+      "DELETE FROM login_attempts WHERE updated_at < now() - interval '7 days'",
+    ),
+    quotas: await compte("DELETE FROM rate_limits WHERE window_end < now() - interval '1 day'"),
+  };
 }
 
 /* ---------------------------------------------------------- signalements */

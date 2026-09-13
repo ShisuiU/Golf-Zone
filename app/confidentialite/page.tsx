@@ -32,6 +32,12 @@ export default function ConfidentialitePage() {
             <strong className="text-ink">Ce que vous publiez</strong> : photos, publications,
             commentaires, likes.
           </li>
+          <li>
+            <strong className="text-ink">Votre adresse IP</strong>, uniquement pour compter les
+            connexions ratées et les inscriptions, et empêcher qu&apos;un automate ne sature le
+            site. Elle n&apos;est associée à aucun compte, ne sert à rien d&apos;autre, et est
+            effacée au plus tard sept jours après le dernier essai.
+          </li>
         </ul>
       </Section>
 
@@ -55,7 +61,8 @@ export default function ConfidentialitePage() {
       <Section title="Combien de temps">
         <p>
           Tant que votre compte existe. Une session expire au bout de 30 jours ; changer de
-          mot de passe déconnecte tous les appareils.
+          mot de passe déconnecte tous les appareils. Un ménage quotidien efface les sessions
+          périmées, les liens de confirmation déjà utilisés et les compteurs devenus inutiles.
         </p>
       </Section>
 

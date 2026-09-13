@@ -13,6 +13,7 @@ import { requireUser } from "@/lib/dal";
 import { ACCOUNTS_ENABLED } from "@/lib/flags";
 import { validatePhoto } from "@/lib/photo";
 import { isGeneration, MAX_CAPTION, MAX_COMMENT } from "@/lib/post";
+import { noteQuotaAction, quotaBlockedFor, QUOTAS, waitLabel } from "@/lib/throttle";
 
 export type PostState = {
   errors?: Record<string, string>;
@@ -56,12 +57,25 @@ export async function publishPost(_prev: PostState, formData: FormData): Promise
 
   if (Object.keys(errors).length > 0) return { errors, values };
 
+  // Le quota se vérifie une fois la saisie jugée valable : un formulaire
+  // refusé ne doit pas consommer le droit de publier.
+  const attente = await quotaBlockedFor(QUOTAS.publication, user.id);
+  if (attente > 0) {
+    return {
+      errors: {
+        form: `Vous avez atteint ${QUOTAS.publication.limit} publications pour cette heure. Réessayez dans ${waitLabel(attente)}.`,
+      },
+      values,
+    };
+  }
+
   await createPost({
     userId: user.id,
     model: rawModel || null,
     caption,
     photo: photo && photo.ok ? { data: photo.data, mime: photo.mime } : undefined,
   });
+  await noteQuotaAction(QUOTAS.publication, user.id);
 
   revalidatePath("/");
   revalidatePath("/profil");
@@ -144,7 +158,15 @@ export async function commentPost(
   if (!body) return { error: "Écrivez votre commentaire." };
   if (body.length > MAX_COMMENT) return { error: `${MAX_COMMENT} caractères maximum.` };
 
+  const attente = await quotaBlockedFor(QUOTAS.commentaire, user.id);
+  if (attente > 0) {
+    return {
+      error: `Vous avez atteint ${QUOTAS.commentaire.limit} commentaires pour cette heure. Réessayez dans ${waitLabel(attente)}.`,
+    };
+  }
+
   await addComment(postId, user.id, body);
+  await noteQuotaAction(QUOTAS.commentaire, user.id);
   revalidatePath("/");
   revalidatePath("/profil");
   return {};

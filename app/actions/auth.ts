@@ -11,7 +11,16 @@ import {
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { createSession, destroySession } from "@/lib/session";
 import { ACCOUNTS_ENABLED } from "@/lib/flags";
-import { loginBlockedFor, noteLoginFailure, noteLoginSuccess, waitLabel } from "@/lib/throttle";
+import {
+  currentIp,
+  loginBlockedFor,
+  noteLoginFailure,
+  noteLoginSuccess,
+  noteQuotaAction,
+  quotaBlockedFor,
+  QUOTAS,
+  waitLabel,
+} from "@/lib/throttle";
 import { sendVerificationLink } from "@/lib/notify-mail";
 
 export type AuthState = {
@@ -81,11 +90,26 @@ export async function signup(_prev: AuthState, formData: FormData): Promise<Auth
 
   if (Object.keys(errors).length > 0) return { errors, values };
 
+  // Rien n'identifie encore la personne : le compteur porte sur l'adresse.
+  // Contrôlé après la validation, pour qu'un formulaire mal rempli ne coûte
+  // pas une inscription à quelqu'un qui partage la même adresse.
+  const ip = await currentIp();
+  const attente = await quotaBlockedFor(QUOTAS.inscription, ip);
+  if (attente > 0) {
+    return {
+      errors: {
+        form: `Trop d'inscriptions depuis cette connexion. Réessayez dans ${waitLabel(attente)}.`,
+      },
+      values,
+    };
+  }
+
   const user = await createUser({
     email: normalizeEmail(email),
     handle,
     passwordHash: await hashPassword(password),
   });
+  await noteQuotaAction(QUOTAS.inscription, ip);
   await createSession(user.id);
 
   // L'envoi ne doit pas faire échouer l'inscription : le membre peut toujours

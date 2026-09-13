@@ -1,6 +1,12 @@
 import "server-only";
 import { headers } from "next/headers";
-import { clearLoginFailures, lockedFor, recordLoginFailure } from "@/lib/db";
+import {
+  clearLoginFailures,
+  lockedFor,
+  noteQuotaUse,
+  quotaWait,
+  recordLoginFailure,
+} from "@/lib/db";
 
 /**
  * Limitation des tentatives de connexion.
@@ -42,6 +48,45 @@ export async function noteLoginFailure(email: string): Promise<void> {
 
 export async function noteLoginSuccess(email: string): Promise<void> {
   await clearLoginFailures(await keysFor(email));
+}
+
+/* ------------------------------------------------------------------ quotas */
+
+/**
+ * Rythme maximal des actions qui coûtent quelque chose au site.
+ *
+ * Ces chiffres ne gênent personne : dix publications en une heure, c'est déjà
+ * beaucoup pour une seule voiture. Ils arrêtent en revanche un script, et
+ * c'est le but — une photo pèse jusqu'à 2 Mo et l'hébergement de la base
+ * donne 0,5 Go, soit quelques centaines de photos avant saturation. Sans
+ * plafond, une seule personne peut remplir la base en une soirée et bloquer
+ * tout le monde.
+ *
+ * Les inscriptions se comptent par adresse IP, faute d'autre repère avant
+ * qu'un compte existe. Le plafond est volontairement large : une adresse peut
+ * être partagée par tout un immeuble.
+ */
+export const QUOTAS = {
+  publication: { limit: 10, windowMinutes: 60, quoi: "publications" },
+  commentaire: { limit: 40, windowMinutes: 60, quoi: "commentaires" },
+  inscription: { limit: 5, windowMinutes: 60, quoi: "inscriptions" },
+} as const;
+
+type Quota = (typeof QUOTAS)[keyof typeof QUOTAS];
+
+/** Secondes à attendre, 0 si la voie est libre. */
+export async function quotaBlockedFor(quota: Quota, sujet: string | number): Promise<number> {
+  return quotaWait(`${quota.quoi}:${sujet}`, quota.limit);
+}
+
+/** À appeler une fois l'action réellement passée — un refus ne consomme rien. */
+export async function noteQuotaAction(quota: Quota, sujet: string | number): Promise<void> {
+  await noteQuotaUse(`${quota.quoi}:${sujet}`, quota.windowMinutes);
+}
+
+/** L'adresse du client, pour ce qui se compte avant qu'un compte existe. */
+export async function currentIp(): Promise<string> {
+  return clientIp();
 }
 
 /** « 15 minutes », « 40 secondes » — pour l'annoncer sans jargon. */

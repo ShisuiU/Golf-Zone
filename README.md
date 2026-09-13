@@ -50,10 +50,13 @@ Autres commandes : `npm run build`, `npm run start`, `npm run lint`, `npm test`.
 
 Une suite de bout en bout, dans un vrai navigateur (`tests/`, Playwright) :
 authentification et verrouillage des tentatives, fil, likes, commentaires et
-pagination, profils, photos, modération, et une passe d'apparence — un seul
-titre et un pied de page par écran, aucun débordement à 390 px comme à 1440 px,
-anneau de focus visible sur tout ce qui s'atteint au clavier, mouvement coupé
-quand le système le demande.
+pagination, profils, photos, modération, plafonds de rythme et ménage, et une
+passe d'apparence — un seul titre et un pied de page par écran, aucun
+débordement de 320 px à 1440 px y compris avec un nom à rallonge ou une adresse
+sans espace, cibles tactiles d'au moins 24 px (WCAG 2.5.8), lien d'évitement au
+premier coup de tabulation, fermeture du menu par Échap, anneau de focus
+visible sur tout ce qui s'atteint au clavier, mouvement coupé quand le système
+le demande.
 
 ```bash
 createdb zonegolf_test
@@ -68,6 +71,11 @@ copie finissant toujours par diverger en silence.
 
 `CHROMIUM_PATH` permet d'utiliser un navigateur déjà présent sur la machine au
 lieu de celui que Playwright installe.
+
+`NAVIGATEURS=tous` ajoute Firefox et WebKit — le moteur de Safari, donc de tous
+les navigateurs sur iPhone (`npx playwright install firefox webkit` d'abord).
+Ce n'est pas la valeur par défaut parce que la suite triple de durée, mais
+c'est ce qui a révélé les deux tiers des défauts trouvés en fin de parcours.
 
 La même suite tourne à chaque push et sur chaque pull request
 (`.github/workflows/ci.yml`), avec un PostgreSQL de service : lint, types,
@@ -240,6 +248,34 @@ La demande répond la même chose que l'adresse existe ou non — autrement, la
 page dirait qui est inscrit. Seule exception : quand le site ne sait pas encore
 envoyer de courrier, il le dit, parce qu'un « vérifiez vos e-mails » qui ne
 mène à rien est pire que rien.
+
+## Rythme et entretien
+
+Trois plafonds, en plus du freinage de la connexion : **10 publications** et
+**40 commentaires** par heure et par membre, **5 inscriptions** par heure et
+par adresse IP. Ces chiffres ne gênent personne — dix publications en une
+heure, c'est déjà beaucoup pour une seule voiture — mais ils arrêtent un
+script, et c'est le but : une photo pèse jusqu'à 2 Mo, le plan gratuit de Neon
+donne 0,5 Go, et sans plafond une seule personne remplit la base en une soirée.
+
+Le compteur vit dans `rate_limits`, distinct de `login_attempts` : celui-ci
+compte des **échecs** et pose un verrou, celui-là des **réussites** sur une
+fenêtre qui s'ouvre à la première. Le quota se vérifie une fois la saisie
+jugée valable et ne se décompte qu'après l'action : un formulaire mal rempli
+ne coûte pas le droit de publier. Le décompte est en base et non en mémoire —
+chaque instance serverless a la sienne, un compteur en RAM ne protégerait rien.
+
+`GET /api/entretien`, appelée chaque nuit par la tâche planifiée de
+`vercel.json`, efface les sessions périmées, les jetons consommés ou expirés
+et les compteurs dormants. `CRON_SECRET` verrouille l'accès quand la variable
+est posée ; sans elle la route reste ouverte, ce qui ne prête pas à
+conséquence — elle ne supprime que ce qui a déjà expiré, et l'appeler dix fois
+ne fait pas plus que l'appeler une.
+
+Deux de ces tables portent une adresse IP. C'est le seul usage qu'en fait le
+site, elle n'est rattachée à aucun compte, elle est effacée au plus tard sept
+jours après le dernier essai — et la page de confidentialité le dit, ce qui
+n'était pas le cas jusqu'ici alors que `login_attempts` en stockait déjà.
 
 ## Modération
 
@@ -417,10 +453,7 @@ en desktop et mobile) ont été produites en amont sur un canvas séparé.
 Restent à faire :
 
 - **Contenu** : plusieurs photos par publication, recherche.
-- **Abus** : rien ne limite le rythme de publication ni la création de comptes
-  en série ; seule la connexion est freinée.
-- **Entretien** : les sessions expirées et les jetons consommés ne sont jamais
-  purgés, et aucune alerte ne prévient d'une panne.
+- **Entretien** : aucune alerte ne prévient d'une panne.
 - **WebKit** : la suite passe sur les trois moteurs, mais quand ils tournent à
   la suite dans le même conteneur, WebKit plante par moments en cours de
   navigation (« internal error »). Seul, il fait 41/41. C'est le conteneur,
