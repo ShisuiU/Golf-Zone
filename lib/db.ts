@@ -123,6 +123,21 @@ function ensureSchema(): Promise<void> {
       ALTER TABLE photos ALTER COLUMN dossier_id DROP NOT NULL;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_photo_id INTEGER
         REFERENCES photos(id) ON DELETE SET NULL;
+
+      -- Notifications. Tout est en cascade : effacer une publication ou un
+      -- compte doit effacer ce qui y renvoyait, sinon la page en garderait la
+      -- trace après coup.
+      CREATE TABLE IF NOT EXISTS notifications (
+        id         SERIAL PRIMARY KEY,
+        user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        actor_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        kind       TEXT NOT NULL,
+        dossier_id INTEGER NOT NULL REFERENCES dossiers(id) ON DELETE CASCADE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        read_at    TIMESTAMPTZ
+      );
+      CREATE INDEX IF NOT EXISTS notifications_inbox
+        ON notifications (user_id, created_at DESC);
     `);
   })();
   return schemaReady;
@@ -139,7 +154,14 @@ async function query<T extends Record<string, unknown>>(
 
 /* ------------------------------------------------------------------ users */
 
-export type User = { id: number; email: string; handle: string; avatarPhotoId: number | null };
+export type User = {
+  id: number;
+  email: string;
+  handle: string;
+  avatarPhotoId: number | null;
+  /** Notifications non lues, ramenées avec la session (voir la requête). */
+  unread: number;
+};
 type UserRow = User & { password_hash: string };
 
 export function normalizeEmail(email: string): string {
@@ -148,7 +170,7 @@ export function normalizeEmail(email: string): string {
 
 export async function findUserByEmail(email: string): Promise<UserRow | undefined> {
   const rows = await query<UserRow>(
-    `SELECT id, email, handle, password_hash, avatar_photo_id AS "avatarPhotoId"
+    `SELECT id, email, handle, password_hash, avatar_photo_id AS "avatarPhotoId", 0 AS unread
        FROM users WHERE email = $1`,
     [normalizeEmail(email)],
   );
@@ -171,10 +193,31 @@ export async function createUser(input: {
 }): Promise<User> {
   const rows = await query<User>(
     `INSERT INTO users (email, handle, password_hash) VALUES ($1, $2, $3)
-     RETURNING id, email, handle, avatar_photo_id AS "avatarPhotoId"`,
+     RETURNING id, email, handle, avatar_photo_id AS "avatarPhotoId", 0 AS unread`,
     [normalizeEmail(input.email), input.handle, input.passwordHash],
   );
   return rows[0];
+}
+
+export async function findPasswordHash(userId: number): Promise<string | undefined> {
+  const rows = await query<{ password_hash: string }>(
+    "SELECT password_hash FROM users WHERE id = $1",
+    [userId],
+  );
+  return rows[0]?.password_hash;
+}
+
+export async function updatePassword(userId: number, passwordHash: string): Promise<void> {
+  await query("UPDATE users SET password_hash = $2 WHERE id = $1", [userId, passwordHash]);
+}
+
+/**
+ * Suppression du compte. Tout part avec lui : publications, photos, likes,
+ * commentaires, sessions — les clés étrangères sont en cascade. Un membre qui
+ * s'en va ne doit pas laisser de trace qu'il ne peut plus effacer lui-même.
+ */
+export async function deleteUser(userId: number): Promise<void> {
+  await query("DELETE FROM users WHERE id = $1", [userId]);
 }
 
 /* --------------------------------------------------------------- profils */
@@ -312,7 +355,12 @@ export async function insertSession(
 /** Renvoie le membre d'une session valide, et purge celle qui a expiré. */
 export async function findUserBySessionToken(tokenHash: string): Promise<User | undefined> {
   const rows = await query<User & { expires_at: Date }>(
-    `SELECT u.id, u.email, u.handle, u.avatar_photo_id AS "avatarPhotoId", s.expires_at
+    // Le compteur de non-lues est ramené ici plutôt que par une requête à
+    // part : l'en-tête l'affiche sur chaque page, et la base est à Francfort
+    // quand le serveur est à Paris — un aller-retour de moins à chaque vue.
+    `SELECT u.id, u.email, u.handle, u.avatar_photo_id AS "avatarPhotoId", s.expires_at,
+            (SELECT count(*)::int FROM notifications n
+              WHERE n.user_id = u.id AND n.read_at IS NULL) AS unread
        FROM sessions s JOIN users u ON u.id = s.user_id
       WHERE s.token_hash = $1`,
     [tokenHash],
@@ -323,7 +371,18 @@ export async function findUserBySessionToken(tokenHash: string): Promise<User | 
     await deleteSessionByHash(tokenHash);
     return undefined;
   }
-  return { id: row.id, email: row.email, handle: row.handle, avatarPhotoId: row.avatarPhotoId };
+  return {
+    id: row.id,
+    email: row.email,
+    handle: row.handle,
+    avatarPhotoId: row.avatarPhotoId,
+    unread: row.unread,
+  };
+}
+
+/** Après un changement de mot de passe : les autres appareils sont déconnectés. */
+export async function deleteSessionsOfUser(userId: number): Promise<void> {
+  await query("DELETE FROM sessions WHERE user_id = $1", [userId]);
 }
 
 export async function deleteSessionByHash(tokenHash: string): Promise<void> {
@@ -403,7 +462,15 @@ export async function createPost(input: {
  * Francfort et le serveur à Paris, donc chaque aller-retour supplémentaire se
  * paierait sur chaque affichage du fil.
  */
-async function listPosts(viewerId: number | null, where: string, params: unknown[]) {
+/** Nombre de publications ramenées par page de fil. */
+export const FEED_PAGE = 20;
+
+async function listPosts(
+  viewerId: number | null,
+  where: string,
+  params: unknown[],
+  limit = 50,
+) {
   return query<FeedEntry>(
     `SELECT d.id,
             u.handle,
@@ -436,16 +503,38 @@ async function listPosts(viewerId: number | null, where: string, params: unknown
        FROM dossiers d
        JOIN users u ON u.id = d.user_id
       ${where}
-      ORDER BY d.created_at DESC
-      LIMIT 50`,
+      -- L'identifiant départage : la pagination avance dessus, l'ordre doit
+      -- donc rester le même quand deux publications partagent la seconde.
+      ORDER BY d.created_at DESC, d.id DESC
+      LIMIT ${limit}`,
     // 0 ne correspond à aucun identifiant : un visiteur non connecté n'aime rien.
     [viewerId ?? 0, ...params],
   );
 }
 
-/** Fil public, le plus récent d'abord. */
-export async function listFeed(viewerId: number | null): Promise<FeedEntry[]> {
-  return listPosts(viewerId, "", []);
+/** Une publication précise, avec ses commentaires. */
+export async function findPost(postId: number, viewerId: number | null): Promise<FeedEntry | undefined> {
+  const rows = await listPosts(viewerId, "WHERE d.id = $2", [postId]);
+  return rows[0];
+}
+
+/**
+ * Fil public, le plus récent d'abord. `before` est l'identifiant de la
+ * dernière publication déjà vue : une pagination par curseur, et non par
+ * décalage, car un décalage saute une publication dès qu'une nouvelle est
+ * postée pendant la lecture.
+ *
+ * Une page de plus est demandée que nécessaire, juste pour savoir s'il faut
+ * proposer la suite — sans quoi le lien mènerait parfois à une page vide.
+ */
+export async function listFeed(
+  viewerId: number | null,
+  before?: number,
+): Promise<{ posts: FeedEntry[]; more: boolean }> {
+  const rows = before
+    ? await listPosts(viewerId, "WHERE d.id < $2", [before], FEED_PAGE + 1)
+    : await listPosts(viewerId, "", [], FEED_PAGE + 1);
+  return { posts: rows.slice(0, FEED_PAGE), more: rows.length > FEED_PAGE };
 }
 
 /**
@@ -473,13 +562,22 @@ export async function toggleLike(postId: number, userId: number): Promise<boolea
     "DELETE FROM likes WHERE dossier_id = $1 AND user_id = $2 RETURNING dossier_id",
     [postId, userId],
   );
-  if (removed.length > 0) return false;
+  if (removed.length > 0) {
+    // Retirer son like retire la notification : sinon, aimer puis se raviser
+    // en boucle remplirait la boîte de l'auteur.
+    await query(
+      "DELETE FROM notifications WHERE kind = 'like' AND dossier_id = $1 AND actor_id = $2",
+      [postId, userId],
+    );
+    return false;
+  }
 
   // ON CONFLICT : deux clics simultanés ne doivent pas lever d'erreur.
   await query(
     "INSERT INTO likes (dossier_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
     [postId, userId],
   );
+  await notify("like", postId, userId);
   return true;
 }
 
@@ -492,6 +590,64 @@ export async function addComment(
     postId,
     userId,
     body,
+  ]);
+  await notify("comment", postId, userId);
+}
+
+/* -------------------------------------------------------- notifications */
+
+/**
+ * Prévient l'auteur d'une publication. Le destinataire est déduit en base :
+ * l'appelant n'a pas à le connaître, et la clause `<> $3` écarte le cas où
+ * l'on agit sur sa propre publication — personne n'a besoin d'être averti de
+ * ce qu'il vient de faire.
+ */
+async function notify(kind: "like" | "comment", postId: number, actorId: number): Promise<void> {
+  await query(
+    `INSERT INTO notifications (user_id, actor_id, kind, dossier_id)
+     SELECT d.user_id, $2, $1, d.id FROM dossiers d WHERE d.id = $3 AND d.user_id <> $2`,
+    [kind, actorId, postId],
+  );
+}
+
+export type Notification = {
+  id: number;
+  kind: "like" | "comment";
+  postId: number;
+  handle: string;
+  avatarPhotoId: number | null;
+  caption: string;
+  photoId: number | null;
+  createdAt: Date;
+  isNew: boolean;
+};
+
+export async function listNotifications(userId: number): Promise<Notification[]> {
+  return query<Notification>(
+    `SELECT n.id,
+            n.kind,
+            n.dossier_id AS "postId",
+            a.handle,
+            a.avatar_photo_id AS "avatarPhotoId",
+            d.caption,
+            (SELECT p.id FROM photos p
+              WHERE p.dossier_id = d.id
+              ORDER BY p.created_at DESC LIMIT 1) AS "photoId",
+            n.created_at AS "createdAt",
+            n.read_at IS NULL AS "isNew"
+       FROM notifications n
+       JOIN users a ON a.id = n.actor_id
+       JOIN dossiers d ON d.id = n.dossier_id
+      WHERE n.user_id = $1
+      ORDER BY n.created_at DESC
+      LIMIT 50`,
+    [userId],
+  );
+}
+
+export async function markNotificationsRead(userId: number): Promise<void> {
+  await query("UPDATE notifications SET read_at = now() WHERE user_id = $1 AND read_at IS NULL", [
+    userId,
   ]);
 }
 

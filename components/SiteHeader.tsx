@@ -10,6 +10,32 @@ import { ACCOUNTS_ENABLED, CTA_HREF } from "@/lib/flags";
  * sans JavaScript, donc l'en-tête reste un composant serveur — ce qui lui
  * permet aussi de lire la session pour adapter les liens.
  */
+/** Cloche des notifications, avec le nombre de non-lues. */
+function Bell({ unread }: { unread: number }) {
+  return (
+    <Link
+      href="/notifications"
+      aria-label={unread > 0 ? `Notifications (${unread} non lues)` : "Notifications"}
+      className="relative flex h-11 w-11 items-center justify-center text-body hover:text-ink"
+    >
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M12 3a6 6 0 0 0-6 6v3.6L4.5 16h15L18 12.6V9a6 6 0 0 0-6-6ZM9.5 19a2.5 2.5 0 0 0 5 0"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+      {unread > 0 ? (
+        <span className="absolute top-1.5 right-1.5 min-w-[17px] rounded-full bg-brand px-1 text-center font-mono text-[10px] leading-[17px] font-bold text-graphite">
+          {unread > 9 ? "9+" : unread}
+        </span>
+      ) : null}
+    </Link>
+  );
+}
+
 export async function SiteHeader() {
   const user = await getCurrentUser();
 
@@ -47,6 +73,7 @@ export async function SiteHeader() {
               Connexion
             </Link>
           )}
+          {user ? <Bell unread={user.unread} /> : null}
           <Link
             href={primary.href}
             className="bevel inline-flex min-h-[46px] items-center bg-brand px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-graphite hover:text-graphite"
@@ -56,6 +83,8 @@ export async function SiteHeader() {
         </nav>
 
         {/* Mobile */}
+        <div className="flex items-center lg:hidden">
+          {user ? <Bell unread={user.unread} /> : null}
         <details className="group relative lg:hidden [&_summary::-webkit-details-marker]:hidden">
           <summary
             aria-label="Ouvrir le menu"
@@ -104,6 +133,7 @@ export async function SiteHeader() {
             </Link>
           </nav>
         </details>
+        </div>
       </div>
 
       {/* Bandeau d'information — orange = « à venir ». */}

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Barlow, Barlow_Condensed, Russo_One, Space_Mono } from "next/font/google";
 import "./globals.css";
 import { SITE_NAME, SITE_TAGLINE } from "@/lib/content";
+import { SITE_URL } from "@/lib/site";
 
 const russoOne = Russo_One({
   weight: "400",
@@ -31,10 +32,26 @@ const spaceMono = Space_Mono({
   display: "swap",
 });
 
+const DESCRIPTION =
+  "Partagez des photos de votre Volkswagen Golf et découvrez celles de la communauté. Toutes générations, Mk1 à Mk8. Gratuit et sans publicité.";
+
 export const metadata: Metadata = {
-  title: `${SITE_NAME} — ${SITE_TAGLINE}`,
-  description:
-    "Partagez des photos de votre Volkswagen Golf et découvrez celles de la communauté. Toutes générations, Mk1 à Mk8. Gratuit et sans publicité.",
+  // Base absolue : sans elle, l'image d'un partage resterait un chemin relatif,
+  // que ni Facebook ni WhatsApp ne savent résoudre.
+  metadataBase: SITE_URL,
+  title: {
+    default: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    template: `%s`,
+  },
+  description: DESCRIPTION,
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    locale: "fr_FR",
+    title: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    description: DESCRIPTION,
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({

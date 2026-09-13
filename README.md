@@ -17,6 +17,10 @@ n'est utilisé.
   publications et de likes reçus, et le mur des publications du membre.
   `/profil` est le sien — publication et édition comprises —
   `/membre/<pseudo>` celui des autres, `/membres` l'annuaire de la communauté.
+- **Notifications** : likes et commentaires reçus, compteur dans l'en-tête.
+- **Compte** `/compte` : changer son mot de passe, se déconnecter, supprimer
+  son compte (et tout ce qu'il a publié).
+- **Pages légales** : mentions et confidentialité.
 - **Duels** sur leur propre page `/duels`, annoncés comme non ouverts. Le site
   est d'abord un espace de partage ; la compétition vient en plus.
 
@@ -55,6 +59,14 @@ app/
   profil/          son propre profil : fiche, édition, publication, ses posts
   membre/[handle]/ profil public d'un membre
   membres/         annuaire de la communauté
+  publication/[id] lien permanent d'une publication
+  notifications/   likes et commentaires reçus
+  compte/          mot de passe, déconnexion, suppression
+  mentions/        mentions légales
+  confidentialite/ ce qui est collecté, et comment tout effacer
+  not-found.tsx    404
+  error.tsx        page d'erreur
+  robots.ts        et sitemap.ts
   (auth)/          inscription et connexion
   photos/[id]/     sert une photo stockée en base
   actions/         Server Actions (auth.ts, post.ts)
@@ -121,6 +133,34 @@ la clé primaire `(dossier_id, user_id)` qui l'impose, pas le code.
 
 Un visiteur non connecté voit tout le fil ; ses clics sur « j'aime » ou
 « commenter » l'amènent à l'inscription.
+
+Le fil est paginé **par curseur** (`?avant=<id>`) et non par décalage : avec un
+décalage, une publication postée pendant la lecture décale tout et en fait
+sauter une. Une page de plus que nécessaire est demandée, juste pour savoir
+s'il faut proposer la suite.
+
+Chaque publication a un **lien permanent** (`/publication/<id>`), qui est ce
+que visent les notifications et les partages.
+
+## Notifications
+
+Un like ou un commentaire prévient l'auteur — jamais soi-même : c'est la
+requête d'insertion qui l'écarte (`WHERE d.user_id <> l'auteur du geste`),
+pas le code appelant. Retirer son like retire la notification, sinon aimer
+puis se raviser en boucle remplirait la boîte de l'autre.
+
+Le compteur de non-lues est ramené **avec la session**, dans la même requête :
+l'en-tête l'affiche sur chaque page, et un aller-retour de plus vers Francfort
+se paierait à chaque vue.
+
+## Compte
+
+Changer son mot de passe demande l'ancien — sans quoi un appareil resté ouvert
+suffirait à prendre le compte — et déconnecte tous les autres appareils.
+
+Supprimer son compte efface publications, photos, commentaires, likes et
+sessions : les clés étrangères sont en cascade. C'est confirmé par le mot de
+passe et un mot à recopier, parce que c'est irréversible.
 
 ## Profils
 
@@ -226,14 +266,17 @@ en desktop et mobile) ont été produites en amont sur un canvas séparé.
 1. ~~Comptes et authentification.~~
 2. ~~Upload de photos et dossiers voiture.~~
 3. ~~Fil social : publications, likes, commentaires.~~
-4. Duels : appariement, vote (1 membre = 1 voix), verdict.
+4. ~~Profils, annuaire des membres, notifications, pagination.~~
+5. Duels : appariement, vote (1 membre = 1 voix), verdict.
 
-Côté photos, à prévoir quand le volume montera : plusieurs photos par dossier,
-pagination du feed, et modération.
+Restent à faire, par ordre d'urgence quand le site s'ouvrira vraiment :
 
-À prévoir côté comptes quand le site s'ouvrira : confirmation d'e-mail,
-réinitialisation de mot de passe, limitation du nombre de tentatives de
-connexion, et migration vers une base gérée.
+- **Compte** : confirmation d'e-mail, réinitialisation du mot de passe,
+  limitation des tentatives de connexion.
+- **Modération** : signaler une publication ou un commentaire.
+- **Contenu** : plusieurs photos par publication, recherche.
+- **Mentions légales** : le nom et l'adresse de contact de l'éditeur y sont
+  encore à compléter — la loi impose de les publier.
 
-Points encore ouverts : la durée d'un duel, le barème de points et la
+Points encore ouverts sur les duels : la durée, le barème de points et la
 nature des récompenses (volontairement laissés de côté pour l'instant).

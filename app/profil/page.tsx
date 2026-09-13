@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { logout } from "@/app/actions/auth";
 import { Composer } from "@/components/feed/Composer";
 import { PostCard } from "@/components/feed/PostCard";
 import { ProfileCard } from "@/components/profil/ProfileCard";
 import { ProfileForm } from "@/components/profil/ProfileForm";
+import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { requireUser } from "@/lib/dal";
 import { findProfile, listPostsOfUser } from "@/lib/db";
@@ -57,15 +58,14 @@ export default async function ProfilPage() {
             ))
           )}
 
-          <form action={logout} className="mt-4 border-t border-hairline pt-6 text-center">
-            <button
-              type="submit"
-              className="min-h-[44px] cursor-pointer px-4 font-cond text-sm font-semibold uppercase tracking-[0.06em] text-muted hover:text-ink"
-            >
-              Se déconnecter
-            </button>
-          </form>
+          <p className="mt-4 border-t border-hairline pt-6 text-center text-sm text-muted">
+            <Link href="/compte" className="underline">
+              Mon compte
+            </Link>{" "}
+            — mot de passe, déconnexion, suppression
+          </p>
         </div>
+        <SiteFooter />
       </main>
     </div>
   );

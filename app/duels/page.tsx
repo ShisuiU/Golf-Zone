@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getCurrentUser } from "@/lib/dal";
 
@@ -107,6 +108,7 @@ export default async function DuelsPage() {
           </Link>{" "}
           : les photos du fil alimenteront les premiers duels.
         </p>
+        <SiteFooter />
       </main>
     </div>
   );

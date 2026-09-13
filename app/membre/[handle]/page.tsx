@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { PostCard } from "@/components/feed/PostCard";
 import { ProfileCard } from "@/components/profil/ProfileCard";
+import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getCurrentUser } from "@/lib/dal";
 import { findProfile, listPostsOfUser } from "@/lib/db";
@@ -60,6 +61,7 @@ export default async function MembrePage({ params }: Params) {
             </Link>
           </p>
         </div>
+        <SiteFooter />
       </main>
     </div>
   );

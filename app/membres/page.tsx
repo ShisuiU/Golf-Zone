@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Avatar } from "@/components/feed/Avatar";
+import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { listMembers } from "@/lib/db";
 import { ACCOUNTS_ENABLED } from "@/lib/flags";
@@ -57,6 +58,7 @@ export default async function MembresPage() {
             </li>
           ))}
         </ul>
+        <SiteFooter />
       </main>
     </div>
   );

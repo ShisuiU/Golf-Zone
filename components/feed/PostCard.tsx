@@ -4,7 +4,7 @@ import { removePost } from "@/app/actions/post";
 import { Avatar } from "@/components/feed/Avatar";
 import { CommentSection } from "@/components/feed/CommentSection";
 import { LikeButton } from "@/components/feed/LikeButton";
-import { timeAgo } from "@/components/feed/timeAgo";
+import { Time } from "@/components/feed/Time";
 import type { FeedEntry } from "@/lib/db";
 
 /** Une publication du fil : en-tête, image éventuelle, actions, commentaires. */
@@ -30,7 +30,9 @@ export function PostCard({
           </Link>
           <p className="font-mono text-[10px] uppercase tracking-[0.05em] text-faint">
             {post.model ? `Golf ${post.model} · ` : ""}
-            {timeAgo(post.createdAt)}
+            <Link href={`/publication/${post.id}`} className="hover:text-brand">
+              <Time date={post.createdAt} />
+            </Link>
           </p>
         </div>
         {isMine ? (

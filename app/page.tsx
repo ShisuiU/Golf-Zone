@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { Composer } from "@/components/feed/Composer";
 import { PostCard } from "@/components/feed/PostCard";
+import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getCurrentUser } from "@/lib/dal";
 import { listFeed, type FeedEntry } from "@/lib/db";
 import { ACCOUNTS_ENABLED, LIVE_FEED } from "@/lib/flags";
-import { SITE_NAME } from "@/lib/content";
 
 /** Le fil ne doit jamais bloquer la page : la base peut être endormie. */
 const FEED_TIMEOUT_MS = 2_500;
@@ -15,13 +15,14 @@ const FEED_TIMEOUT_MS = 2_500;
  * ne disent pas la même chose au visiteur : le premier est un site pas encore
  * ouvert, le second une panne passagère.
  */
-type FeedState = FeedEntry[] | "closed" | "unavailable";
+type Page = { posts: FeedEntry[]; more: boolean };
+type FeedState = Page | "closed" | "unavailable";
 
-async function safeFeed(viewerId: number | null): Promise<FeedState> {
+async function safeFeed(viewerId: number | null, before?: number): Promise<FeedState> {
   if (!LIVE_FEED) return "closed";
   const timeout = new Promise<"timeout">((r) => setTimeout(() => r("timeout"), FEED_TIMEOUT_MS));
   try {
-    const result = await Promise.race([listFeed(viewerId), timeout]);
+    const result = await Promise.race([listFeed(viewerId, before), timeout]);
     if (result === "timeout") {
       console.warn("Fil : base trop lente.");
       return "unavailable";
@@ -80,10 +81,19 @@ function EmptyFeed({ connected }: { connected: boolean }) {
   );
 }
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ avant?: string }>;
+}) {
+  const { avant } = await searchParams;
+  const before = Number(avant);
+  const cursor = Number.isInteger(before) && before > 0 ? before : undefined;
+
   const user = await getCurrentUser();
-  const feed = await safeFeed(user?.id ?? null);
-  const posts = Array.isArray(feed) ? feed : [];
+  const feed = await safeFeed(user?.id ?? null, cursor);
+  const page = typeof feed === "string" ? undefined : feed;
+  const posts = page?.posts ?? [];
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -92,7 +102,11 @@ export default async function Home() {
 
       <main className="relative mx-auto w-full max-w-[680px] px-4 py-6 lg:py-10">
         <div className="flex flex-col gap-5">
-          {user ? <Composer handle={user.handle} avatarPhotoId={user.avatarPhotoId} /> : <WelcomeBanner />}
+          {cursor ? null : user ? (
+            <Composer handle={user.handle} avatarPhotoId={user.avatarPhotoId} />
+          ) : (
+            <WelcomeBanner />
+          )}
 
           {feed === "closed" ? (
             <p className="border border-hairline bg-surface px-4 py-6 text-center text-sm text-muted">
@@ -103,22 +117,36 @@ export default async function Home() {
               Le fil est momentanément indisponible. Réessayez dans un instant.
             </p>
           ) : posts.length === 0 ? (
-            <EmptyFeed connected={Boolean(user)} />
+            cursor ? (
+              <p className="border border-hairline bg-surface px-4 py-6 text-center text-sm text-muted">
+                Plus rien avant celle-ci.
+              </p>
+            ) : (
+              <EmptyFeed connected={Boolean(user)} />
+            )
           ) : (
             posts.map((post) => (
               <PostCard key={post.id} post={post} viewerHandle={user?.handle ?? null} />
             ))
           )}
+
+          {page?.more ? (
+            <Link
+              href={`/?avant=${posts[posts.length - 1].id}`}
+              className="border border-hairline-strong px-4 py-3.5 text-center font-cond text-sm font-semibold uppercase tracking-[0.06em] text-body hover:text-ink"
+            >
+              Publications plus anciennes
+            </Link>
+          ) : null}
+
+          {cursor ? (
+            <Link href="/" className="py-2 text-center text-sm text-muted underline">
+              Revenir en haut du fil
+            </Link>
+          ) : null}
         </div>
 
-        <footer className="mt-10 flex flex-col gap-1.5 border-t border-hairline pt-6 text-center">
-          <span className="font-mono text-[10px] uppercase text-faint">
-            {SITE_NAME} — projet de fans
-          </span>
-          <span className="font-mono text-[10px] uppercase text-faint">
-            Non affilié à Volkswagen AG
-          </span>
-        </footer>
+        <SiteFooter />
       </main>
     </div>
   );

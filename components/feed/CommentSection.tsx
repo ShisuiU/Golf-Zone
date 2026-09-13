@@ -5,7 +5,7 @@ import Link from "next/link";
 import { commentPost, removeComment, type CommentState } from "@/app/actions/post";
 import { MAX_COMMENT } from "@/lib/post";
 import { Avatar } from "@/components/feed/Avatar";
-import { timeAgo } from "@/components/feed/timeAgo";
+import { Time } from "@/components/feed/Time";
 import type { Comment } from "@/lib/db";
 
 const EMPTY: CommentState = {};
@@ -40,9 +40,7 @@ export function CommentSection({ postId, comments, viewerHandle }: Props) {
                 @{comment.handle}
               </Link>{" "}
               <span className="text-body">{comment.body}</span>{" "}
-              <span className="font-mono text-[10px] text-faint">
-                {timeAgo(comment.createdAt)}
-              </span>
+              <Time date={comment.createdAt} className="font-mono text-[10px] text-faint" />
               {viewerHandle === comment.handle ? (
                 <form action={removeComment} className="inline">
                   <input type="hidden" name="id" value={comment.id} />
