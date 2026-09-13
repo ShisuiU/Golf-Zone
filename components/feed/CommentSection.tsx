@@ -15,9 +15,11 @@ type Props = {
   postId: number;
   comments: Comment[];
   viewerHandle: string | null;
+  /** Inviter le visiteur à s'inscrire : une fois par page, pas par carte. */
+  promptSignup?: boolean;
 };
 
-export function CommentSection({ postId, comments, viewerHandle }: Props) {
+export function CommentSection({ postId, comments, viewerHandle, promptSignup }: Props) {
   const [state, formAction, pending] = useActionState(commentPost, EMPTY);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -47,7 +49,7 @@ export function CommentSection({ postId, comments, viewerHandle }: Props) {
                   <input type="hidden" name="id" value={comment.id} />
                   <button
                     type="submit"
-                    className="ml-2 cursor-pointer font-mono text-[10px] text-faint hover:text-brand"
+                    className="ml-2 inline-flex min-h-[32px] cursor-pointer items-center px-1 font-mono text-[10px] text-faint hover:text-brand"
                   >
                     supprimer
                   </button>
@@ -68,27 +70,31 @@ export function CommentSection({ postId, comments, viewerHandle }: Props) {
           <input type="hidden" name="postId" value={postId} />
           <input
             name="body"
+            required
             maxLength={MAX_COMMENT}
             placeholder="Ajouter un commentaire…"
             aria-label="Ajouter un commentaire"
-            className="min-h-[44px] flex-1 bg-transparent text-[14px] text-ink outline-none placeholder:text-faint"
+            className="peer min-h-[44px] flex-1 bg-transparent text-[14px] text-ink placeholder:text-faint"
           />
+          {/* Gris tant que le champ est vide : sans cela, vingt cartes
+              affichent vingt appels à l'action orange pour rien. Le `peer`
+              évite d'en faire un champ contrôlé pour une question de couleur. */}
           <button
             type="submit"
             disabled={pending}
-            className="min-h-[44px] cursor-pointer px-1 font-cond text-sm font-bold uppercase tracking-[0.05em] text-brand disabled:opacity-50"
+            className="min-h-[44px] cursor-pointer px-2 font-cond text-sm font-bold uppercase tracking-[0.05em] text-brand peer-placeholder-shown:text-faint disabled:opacity-50"
           >
             {pending ? "…" : "Envoyer"}
           </button>
         </form>
-      ) : (
+      ) : promptSignup ? (
         <p className="px-4 py-3 text-[13px] text-muted">
           <Link href="/inscription" className="underline">
             Créez un compte
           </Link>{" "}
-          pour commenter.
+          pour aimer et commenter.
         </p>
-      )}
+      ) : null}
 
       {state.error ? (
         <p className="px-4 pb-3 font-mono text-xs text-brand">{state.error}</p>

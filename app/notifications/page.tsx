@@ -30,11 +30,11 @@ export default async function NotificationsPage() {
   if (notifications.some((n) => n.isNew)) await markNotificationsRead(user.id);
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div className="relative flex min-h-screen flex-col overflow-hidden">
       <div aria-hidden="true" className="tech-grid pointer-events-none absolute inset-0" />
       <SiteHeader />
 
-      <main className="relative mx-auto w-full max-w-[680px] px-4 py-6 lg:py-10">
+      <main className="relative mx-auto w-full max-w-[680px] flex flex-1 flex-col px-4 py-6 lg:py-10">
         <h1 className="mb-6 font-impact text-[26px] leading-tight lg:text-[32px]">Notifications</h1>
 
         {notifications.length === 0 ? (

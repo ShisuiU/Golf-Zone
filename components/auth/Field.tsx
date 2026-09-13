@@ -44,7 +44,7 @@ export function Field({
           defaultValue={defaultValue}
           aria-describedby={[hintId, errorId].filter(Boolean).join(" ") || undefined}
           aria-invalid={error ? true : undefined}
-          className="min-h-[50px] w-full bg-transparent px-3 font-body text-[15px] text-ink outline-none placeholder:text-faint"
+          className="min-h-[50px] w-full bg-transparent px-3 font-body text-[15px] text-ink placeholder:text-faint"
         />
       </div>
       {hint ? (

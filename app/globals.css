@@ -50,7 +50,10 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* Le focus clavier doit rester visible partout. */
+  /* Le focus clavier doit rester visible partout.
+     Aucun champ ne porte `outline-none` : une utilitaire Tailwind passe après
+     cette couche et emporterait l'anneau avec elle, sans que rien ne le
+     signale. La bordure orange au focus reste un renfort, pas le seul indice. */
   :focus-visible {
     outline: 2px solid var(--color-brand);
     outline-offset: 2px;

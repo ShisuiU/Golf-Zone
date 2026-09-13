@@ -12,9 +12,11 @@ import type { FeedEntry } from "@/lib/db";
 export function PostCard({
   post,
   viewerHandle,
+  promptSignup,
 }: {
   post: FeedEntry;
   viewerHandle: string | null;
+  promptSignup?: boolean;
 }) {
   const isMine = viewerHandle === post.handle;
 
@@ -31,7 +33,7 @@ export function PostCard({
           </Link>
           <p className="font-mono text-[10px] uppercase tracking-[0.05em] text-faint">
             {post.model ? `Golf ${post.model} · ` : ""}
-            <Link href={`/publication/${post.id}`} className="hover:text-brand">
+            <Link href={`/publication/${post.id}`} className="inline-block py-0.5 hover:text-brand">
               <Time date={post.createdAt} />
             </Link>
           </p>
@@ -41,7 +43,7 @@ export function PostCard({
             <input type="hidden" name="id" value={post.id} />
             <button
               type="submit"
-              className="min-h-[40px] cursor-pointer px-1 font-mono text-[11px] uppercase tracking-[0.05em] text-faint hover:text-brand"
+              className="inline-flex min-h-[40px] cursor-pointer items-center px-2 font-mono text-[11px] uppercase tracking-[0.05em] text-faint hover:text-brand"
             >
               Supprimer
             </button>
@@ -66,7 +68,7 @@ export function PostCard({
         </p>
       ) : null}
 
-      <div className="flex items-center gap-1 px-4 pt-1">
+      <div className="flex items-center gap-1 px-4 pt-1 pb-1">
         <LikeButton
           postId={post.id}
           count={post.likeCount}
@@ -90,6 +92,7 @@ export function PostCard({
         postId={post.id}
         comments={post.comments}
         viewerHandle={viewerHandle}
+        promptSignup={promptSignup}
       />
     </article>
   );

@@ -537,7 +537,7 @@ export type MemberSummary = {
 };
 
 /** Annuaire des membres, les plus actifs d'abord. */
-export async function listMembers(): Promise<MemberSummary[]> {
+export async function listMembers(limit = 200): Promise<MemberSummary[]> {
   return query<MemberSummary>(
     `SELECT u.id,
             u.handle,
@@ -552,7 +552,8 @@ export async function listMembers(): Promise<MemberSummary[]> {
               WHERE d.user_id = u.id) AS "likesReceived"
        FROM users u
       ORDER BY "postCount" DESC, u.created_at
-      LIMIT 200`,
+      LIMIT $1`,
+    [limit],
   );
 }
 

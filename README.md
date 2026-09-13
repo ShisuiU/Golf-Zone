@@ -302,7 +302,12 @@ couleur de marque *et* comme camp A d'un duel, **bleu acier** comme camp B, et
 le vert réservé à un duel réellement en cours (inutilisé pour l'instant).
 Titres en Russo One, libellés en Barlow Condensed, relevés en Space Mono.
 
-Deux règles apprises en maquettant, à respecter si on étend le style :
+Trois règles apprises en chemin, à respecter si on étend le style :
+
+- Aucun champ ne porte `outline-none`. Les utilitaires Tailwind passent après
+  la couche `base` : une seule de ces classes suffit à emporter l'anneau de
+  focus clavier, sans que rien ne le signale. La bordure orange au focus est un
+  renfort, pas l'indice principal.
 
 - Le biseau (`.bevel`) ne va que sur des éléments à **fond plein** : un
   `clip-path` ne redessine pas la bordure sur la diagonale, un cadre bordé
@@ -311,6 +316,11 @@ Deux règles apprises en maquettant, à respecter si on étend le style :
 - Les variables de police de `next/font` sont posées sur `<body>` : elles
   doivent être exposées via `@theme inline`, sinon la déclaration devient
   invalide et tout retombe sur la pile système.
+
+Sur grand écran, le fil est en deux colonnes : la lecture à 680 px et une
+colonne latérale (soi, la communauté, les duels). Sans elle, 700 px de vide de
+chaque côté donnaient au site l'air d'un téléphone étiré. Elle ne contient rien
+qui manquerait sur mobile.
 
 Les maquettes d'origine (cette direction plus les trois explorations initiales,
 en desktop et mobile) ont été produites en amont sur un canvas séparé.

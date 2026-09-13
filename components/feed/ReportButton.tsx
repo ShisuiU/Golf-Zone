@@ -37,7 +37,7 @@ export function ReportButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`cursor-pointer font-mono ${size} text-faint hover:text-brand`}
+        className={`inline-flex min-h-[36px] cursor-pointer items-center px-1 font-mono ${size} text-faint hover:text-brand`}
       >
         {label}
       </button>
@@ -54,7 +54,7 @@ export function ReportButton({
         autoFocus
         placeholder="Ce qui pose problème"
         aria-label="Motif du signalement"
-        className="min-h-[36px] min-w-0 flex-1 border border-hairline bg-graphite px-2 text-[13px] text-ink outline-none placeholder:text-faint focus:border-brand"
+        className="min-h-[36px] min-w-0 flex-1 border border-hairline bg-graphite px-2 text-[13px] text-ink placeholder:text-faint focus:border-brand"
       />
       <button
         type="submit"

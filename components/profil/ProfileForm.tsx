@@ -9,7 +9,7 @@ import type { Profile } from "@/lib/db";
 const EMPTY: ProfileState = {};
 
 const FIELD =
-  "min-h-[48px] w-full border border-hairline bg-graphite px-3 font-body text-[15px] text-ink outline-none placeholder:text-faint focus:border-brand";
+  "min-h-[48px] w-full border border-hairline bg-graphite px-3 font-body text-[15px] text-ink placeholder:text-faint focus:border-brand";
 const LABEL = "font-mono text-[10px] tracking-[0.1em] uppercase text-muted";
 
 /**

@@ -33,8 +33,10 @@ export function Composer({
           maxLength={MAX_CAPTION}
           onFocus={() => setOpen(true)}
           defaultValue={state.values?.caption}
-          placeholder={`Quoi de neuf, @${handle} ? Posez une question, montrez votre Golf…`}
-          className="min-h-[44px] flex-1 resize-none bg-transparent py-2.5 text-[15px] leading-relaxed text-ink outline-none placeholder:text-faint"
+          // Court exprès : replié, le champ ne fait qu'une ligne, et un texte
+          // plus long s'y couperait en deux au milieu d'un mot.
+          placeholder={open ? "Racontez, demandez, montrez…" : `Quoi de neuf, @${handle} ?`}
+          className="min-h-[44px] flex-1 resize-none bg-transparent py-2.5 text-[15px] leading-relaxed text-ink placeholder:text-faint"
         />
       </div>
 
@@ -53,7 +55,7 @@ export function Composer({
               id="model"
               name="model"
               defaultValue={state.values?.model ?? ""}
-              className="min-h-[48px] w-full cursor-pointer border border-hairline bg-graphite px-3 text-[15px] text-ink outline-none focus:border-brand"
+              className="min-h-[48px] w-full cursor-pointer border border-hairline bg-graphite px-3 text-[15px] text-ink focus:border-brand"
             >
               <option value="">— aucune —</option>
               {GENERATIONS.map((g) => (
@@ -76,15 +78,19 @@ export function Composer({
         <p className="mt-2 font-mono text-xs text-brand">{state.errors.form}</p>
       ) : null}
 
-      <div className="mt-4 flex justify-end">
-        <button
-          type="submit"
-          disabled={pending}
-          className="bevel-sm min-h-[44px] cursor-pointer bg-brand px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-graphite disabled:opacity-60"
-        >
-          {pending ? "Publication…" : "Publier"}
-        </button>
-      </div>
+      {/* Rien à publier tant que rien n'est saisi : le bouton n'apparaît
+          qu'une fois la zone dépliée. */}
+      {open ? (
+        <div className="mt-4 flex justify-end">
+          <button
+            type="submit"
+            disabled={pending}
+            className="bevel-sm min-h-[44px] cursor-pointer bg-brand px-6 font-cond text-[15px] font-bold uppercase tracking-[0.06em] text-graphite disabled:opacity-60"
+          >
+            {pending ? "Publication…" : "Publier"}
+          </button>
+        </div>
+      ) : null}
     </form>
   );
 }

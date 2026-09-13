@@ -21,11 +21,11 @@ export default async function MembresPage() {
   const members = await listMembers();
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div className="relative flex min-h-screen flex-col overflow-hidden">
       <div aria-hidden="true" className="tech-grid pointer-events-none absolute inset-0" />
       <SiteHeader />
 
-      <main className="relative mx-auto w-full max-w-[900px] px-4 py-6 lg:py-10">
+      <main className="relative mx-auto w-full max-w-[900px] flex flex-1 flex-col px-4 py-6 lg:py-10">
         <h1 className="font-impact text-[26px] leading-tight lg:text-[32px]">Les membres</h1>
         <p className="mt-2 mb-7 text-[15px] leading-relaxed text-body">
           {members.length === 0
@@ -51,7 +51,8 @@ export default async function MembresPage() {
                     </p>
                   ) : null}
                   <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.05em] text-faint">
-                    {member.postCount} pub. · {member.likesReceived} likes
+                    {member.postCount} publication{member.postCount > 1 ? "s" : ""} ·{" "}
+                    {member.likesReceived} like{member.likesReceived > 1 ? "s" : ""}
                   </p>
                 </div>
               </Link>

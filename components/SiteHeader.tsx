@@ -55,12 +55,12 @@ export async function SiteHeader() {
         </Link>
 
         {/* Desktop */}
-        <nav className="hidden items-center gap-9 lg:flex">
+        <nav className="hidden items-center gap-8 lg:flex">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="font-cond text-base font-semibold uppercase tracking-[0.07em] text-body hover:text-ink"
+              className="flex min-h-[44px] items-center font-cond text-base font-semibold uppercase tracking-[0.07em] text-body hover:text-ink"
             >
               {link.label}
             </Link>
@@ -68,7 +68,7 @@ export async function SiteHeader() {
           {user || !ACCOUNTS_ENABLED ? null : (
             <Link
               href={LOGIN_HREF}
-              className="font-cond text-base font-semibold uppercase tracking-[0.07em] text-body hover:text-ink"
+              className="flex min-h-[44px] items-center font-cond text-base font-semibold uppercase tracking-[0.07em] text-body hover:text-ink"
             >
               Connexion
             </Link>
@@ -151,11 +151,15 @@ export async function SiteHeader() {
               Duels bientôt disponibles
             </Link>
           </span>
-          {TICKER_ITEMS.map((item) => (
-            <span key={item} className="hidden font-mono text-[11px] text-faint lg:inline">
-              {item}
-            </span>
-          ))}
+          {/* Arguments d'accueil : ils s'adressent à un visiteur. Les répéter
+              à un membre sur chaque page, c'est du bruit. */}
+          {user
+            ? null
+            : TICKER_ITEMS.map((item) => (
+                <span key={item} className="hidden font-mono text-[11px] text-faint lg:inline">
+                  {item}
+                </span>
+              ))}
         </div>
         <span className="hidden font-mono text-[11px] text-faint lg:inline">
           {user ? `Connecté · @${user.handle}` : "Communauté indépendante de Volkswagen"}

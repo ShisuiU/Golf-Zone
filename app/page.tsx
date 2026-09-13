@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { Composer } from "@/components/feed/Composer";
 import { PostCard } from "@/components/feed/PostCard";
+import { SideRail } from "@/components/feed/SideRail";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getCurrentUser } from "@/lib/dal";
-import { listFeed, type FeedEntry } from "@/lib/db";
+import { listFeed, listMembers, type FeedEntry, type MemberSummary } from "@/lib/db";
 import { ACCOUNTS_ENABLED, LIVE_FEED } from "@/lib/flags";
 
 /** Le fil ne doit jamais bloquer la page : la base peut être endormie. */
@@ -34,6 +35,16 @@ async function safeFeed(viewerId: number | null, before?: number): Promise<FeedS
   }
 }
 
+/** Membres de la colonne latérale. Son absence ne doit pas casser le fil. */
+async function safeMembers(): Promise<MemberSummary[]> {
+  if (!LIVE_FEED) return [];
+  try {
+    return await listMembers(5);
+  } catch {
+    return [];
+  }
+}
+
 /** Bandeau d'accueil, montré aux visiteurs qui ne sont pas connectés. */
 function WelcomeBanner() {
   return (
@@ -42,8 +53,8 @@ function WelcomeBanner() {
         La communauté des propriétaires de Golf.
       </h1>
       <p className="text-[15px] leading-relaxed text-body">
-        Montrez votre voiture, posez vos questions, commentez celles des autres.
-        Toutes les générations, de la Mk1 à la Mk8.
+        Montrez votre voiture, posez vos questions, commentez celles des autres. Toutes les
+        générations, de la Mk1 à la Mk8.
       </p>
       {/* Sans comptes ouverts, ces deux liens mèneraient à des pages en 404. */}
       {ACCOUNTS_ENABLED ? (
@@ -91,59 +102,76 @@ export default async function Home({
   const cursor = Number.isInteger(before) && before > 0 ? before : undefined;
 
   const user = await getCurrentUser();
-  const feed = await safeFeed(user?.id ?? null, cursor);
+  // En parallèle : la colonne latérale ne coûte pas un aller-retour de plus
+  // en temps d'attente, seulement une requête de plus en même temps.
+  const [feed, members] = await Promise.all([safeFeed(user?.id ?? null, cursor), safeMembers()]);
   const page = typeof feed === "string" ? undefined : feed;
   const posts = page?.posts ?? [];
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div className="relative flex min-h-screen flex-col overflow-hidden">
       <div aria-hidden="true" className="tech-grid pointer-events-none absolute inset-0" />
       <SiteHeader />
 
-      <main className="relative mx-auto w-full max-w-[680px] px-4 py-6 lg:py-10">
-        <div className="flex flex-col gap-5">
-          {cursor ? null : user ? (
-            <Composer handle={user.handle} avatarPhotoId={user.avatarPhotoId} />
-          ) : (
-            <WelcomeBanner />
-          )}
+      <main className="relative mx-auto w-full max-w-[1060px] flex flex-1 flex-col px-4 py-6 lg:py-10">
+        {/* Un titre, même invisible : sans lui la page n'a pas de niveau 1,
+            ce dont dépendent les lecteurs d'écran pour se repérer. */}
+        {user ? <h1 className="sr-only">Le fil de Zone Golf</h1> : null}
 
-          {feed === "closed" ? (
-            <p className="border border-hairline bg-surface px-4 py-6 text-center text-sm text-muted">
-              Le fil ouvre bientôt.
-            </p>
-          ) : feed === "unavailable" ? (
-            <p className="border border-hairline bg-surface px-4 py-6 text-center text-sm text-muted">
-              Le fil est momentanément indisponible. Réessayez dans un instant.
-            </p>
-          ) : posts.length === 0 ? (
-            cursor ? (
-              <p className="border border-hairline bg-surface px-4 py-6 text-center text-sm text-muted">
-                Plus rien avant celle-ci.
-              </p>
+        <div className="lg:grid lg:grid-cols-[minmax(0,680px)_296px] lg:justify-center lg:gap-7">
+          <div className="flex min-w-0 flex-col gap-5">
+            {cursor ? null : user ? (
+              <Composer handle={user.handle} avatarPhotoId={user.avatarPhotoId} />
             ) : (
-              <EmptyFeed connected={Boolean(user)} />
-            )
-          ) : (
-            posts.map((post) => (
-              <PostCard key={post.id} post={post} viewerHandle={user?.handle ?? null} />
-            ))
-          )}
+              <WelcomeBanner />
+            )}
 
-          {page?.more ? (
-            <Link
-              href={`/?avant=${posts[posts.length - 1].id}`}
-              className="border border-hairline-strong px-4 py-3.5 text-center font-cond text-sm font-semibold uppercase tracking-[0.06em] text-body hover:text-ink"
-            >
-              Publications plus anciennes
-            </Link>
-          ) : null}
+            {feed === "closed" ? (
+              <p className="border border-hairline bg-surface px-4 py-6 text-center text-sm text-muted">
+                Le fil ouvre bientôt.
+              </p>
+            ) : feed === "unavailable" ? (
+              <p className="border border-hairline bg-surface px-4 py-6 text-center text-sm text-muted">
+                Le fil est momentanément indisponible. Réessayez dans un instant.
+              </p>
+            ) : posts.length === 0 ? (
+              cursor ? (
+                <p className="border border-hairline bg-surface px-4 py-6 text-center text-sm text-muted">
+                  Plus rien avant celle-ci.
+                </p>
+              ) : (
+                <EmptyFeed connected={Boolean(user)} />
+              )
+            ) : (
+              posts.map((post, index) => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  viewerHandle={user?.handle ?? null}
+                  // Un visiteur n'a besoin d'être invité à s'inscrire qu'une fois,
+                  // pas sur chacune des vingt cartes de la page.
+                  promptSignup={index === 0}
+                />
+              ))
+            )}
 
-          {cursor ? (
-            <Link href="/" className="py-2 text-center text-sm text-muted underline">
-              Revenir en haut du fil
-            </Link>
-          ) : null}
+            {page?.more ? (
+              <Link
+                href={`/?avant=${posts[posts.length - 1].id}`}
+                className="border border-hairline-strong px-4 py-3.5 text-center font-cond text-sm font-semibold uppercase tracking-[0.06em] text-body hover:text-ink"
+              >
+                Publications plus anciennes
+              </Link>
+            ) : null}
+
+            {cursor ? (
+              <Link href="/" className="py-2 text-center text-sm text-muted underline">
+                Revenir en haut du fil
+              </Link>
+            ) : null}
+          </div>
+
+          <SideRail user={user} members={members} />
         </div>
 
         <SiteFooter />
