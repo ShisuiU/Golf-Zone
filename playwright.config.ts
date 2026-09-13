@@ -69,6 +69,9 @@ export default defineConfig({
       DATABASE_URL,
       // La file de modération n'existe que pour les pseudos listés ici.
       ZONE_GOLF_MODERATEURS: "moderateur",
+      // Compilation de production servie en http : sans cela WebKit refuse
+      // le cookie de session et aucun scénario connecté n'y passe.
+      ZONE_GOLF_COOKIE_NON_SECURISE: "1",
     },
   },
 });
