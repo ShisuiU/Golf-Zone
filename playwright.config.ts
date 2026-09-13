@@ -11,6 +11,14 @@ import { defineConfig, devices } from "@playwright/test";
  * `CHROMIUM_PATH` sert aux environnements qui fournissent déjà un navigateur
  * (conteneurs de développement) ; sans elle, Playwright utilise celui qu'il a
  * installé lui-même.
+ *
+ * `NAVIGATEURS=tous` ajoute Firefox et WebKit — le moteur de Safari, donc de
+ * tous les navigateurs sur iPhone. Le site s'appuie sur des choses que les
+ * trois moteurs n'implémentent pas de la même façon (transitions de vue,
+ * menus en `<details>`, biseaux en `clip-path`) : les vérifier sur un seul
+ * ne prouve pas grand-chose. Ce n'est pas la valeur par défaut parce que la
+ * suite triple de durée ; il faut les installer d'abord :
+ *     npx playwright install firefox webkit
  */
 const PORT = Number(process.env.PORT ?? 3100);
 const DATABASE_URL =
@@ -30,12 +38,27 @@ export default defineConfig({
     baseURL: `http://127.0.0.1:${PORT}`,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
-    launchOptions: process.env.CHROMIUM_PATH
-      ? { executablePath: process.env.CHROMIUM_PATH }
-      : {},
   },
 
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    {
+      name: "chromium",
+      use: {
+        ...devices["Desktop Chrome"],
+        // Seulement pour Chromium : imposer ce binaire à Firefox ou à
+        // WebKit les empêcherait de démarrer.
+        launchOptions: process.env.CHROMIUM_PATH
+          ? { executablePath: process.env.CHROMIUM_PATH }
+          : {},
+      },
+    },
+    ...(process.env.NAVIGATEURS === "tous"
+      ? [
+          { name: "firefox", use: { ...devices["Desktop Firefox"] } },
+          { name: "webkit", use: { ...devices["Desktop Safari"] } },
+        ]
+      : []),
+  ],
 
   webServer: {
     command: `npm run start -- --port ${PORT}`,
