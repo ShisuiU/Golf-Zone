@@ -421,6 +421,10 @@ Restent à faire :
   en série ; seule la connexion est freinée.
 - **Entretien** : les sessions expirées et les jetons consommés ne sont jamais
   purgés, et aucune alerte ne prévient d'une panne.
+- **WebKit** : la suite passe sur les trois moteurs, mais quand ils tournent à
+  la suite dans le même conteneur, WebKit plante par moments en cours de
+  navigation (« internal error »). Seul, il fait 41/41. C'est le conteneur,
+  pas le site — d'où `NAVIGATEURS=tous` réservé à une vérification manuelle.
 - **Mentions légales** : le nom et l'adresse de contact de l'éditeur y sont
   encore à compléter — la loi impose de les publier.
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { logout } from "@/app/actions/auth";
 import { Avatar } from "@/components/feed/Avatar";
+import { MenuDeroulant } from "@/components/MenuDeroulant";
 import { LOGIN_HREF, NAV_LINKS, SITE_NAME, TICKER_ITEMS } from "@/lib/content";
 import { getCurrentUser } from "@/lib/dal";
 import { ACCOUNTS_ENABLED, CTA_HREF, isModerator } from "@/lib/flags";
@@ -11,8 +12,9 @@ import type { User } from "@/lib/db";
  *
  * Les deux menus sont des <details> : accessibles au clavier et fonctionnels
  * sans JavaScript, donc l'en-tête reste un composant serveur — ce qui lui
- * permet aussi de lire la session pour adapter les liens. Contrepartie
- * connue : ils ne se referment pas en cliquant à côté.
+ * permet aussi de lire la session pour adapter les liens. `MenuDeroulant`
+ * leur ajoute la fermeture par Échap et par un clic à côté, que le natif
+ * n'offre pas.
  */
 
 /** Cloche des notifications, avec le nombre de non-lues. */
@@ -77,7 +79,7 @@ function AccountLinks({ user }: { user: User }) {
  */
 function AccountMenu({ user }: { user: User }) {
   return (
-    <details className="group relative [&_summary::-webkit-details-marker]:hidden">
+    <MenuDeroulant className="group relative [&_summary::-webkit-details-marker]:hidden">
       <summary
         aria-label="Mon compte"
         className="pressable flex cursor-pointer list-none items-center gap-2 rounded-full border border-hairline py-1 pr-3 pl-1 hover:border-hairline-strong"
@@ -100,7 +102,7 @@ function AccountMenu({ user }: { user: User }) {
       <nav className="animate-rise surface absolute right-0 z-20 mt-3 flex w-56 flex-col p-2">
         <AccountLinks user={user} />
       </nav>
-    </details>
+    </MenuDeroulant>
   );
 }
 
@@ -167,7 +169,7 @@ export async function SiteHeader() {
         {/* Mobile */}
         <div className="flex items-center lg:hidden">
           {user ? <Bell unread={user.unread} /> : null}
-          <details className="group relative [&_summary::-webkit-details-marker]:hidden">
+          <MenuDeroulant className="group relative [&_summary::-webkit-details-marker]:hidden">
             <summary
               aria-label="Ouvrir le menu"
               className="-mr-2.5 flex h-11 w-11 cursor-pointer list-none items-center justify-center"
@@ -224,7 +226,7 @@ export async function SiteHeader() {
                 </>
               )}
             </nav>
-          </details>
+          </MenuDeroulant>
         </div>
       </div>
 

@@ -211,3 +211,34 @@ test("une adresse sans espace est coupée, pas poussée hors de l'écran", async
     }
   }
 });
+
+test("le menu du compte se referme comme on s'y attend", async ({ page }) => {
+  await signup(page, "menu");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/membres");
+
+  const ouvert = page.locator("header details[open]");
+  const bouton = page.locator("header summary:visible");
+
+  await bouton.click();
+  await expect(ouvert).toHaveCount(1);
+
+  // Échap : le panneau recouvre la page, il faut pouvoir en sortir au clavier.
+  await page.keyboard.press("Escape");
+  await expect(ouvert).toHaveCount(0);
+  await expect(bouton).toBeFocused();
+
+  // Un clic à côté ferme aussi — le réflexe de tout le monde. Le panneau
+  // occupe le haut à droite : ce coin-là est hors de son emprise.
+  await bouton.click();
+  await expect(ouvert).toHaveCount(1);
+  await page.mouse.click(8, 780);
+  await expect(ouvert).toHaveCount(0);
+  expect(new URL(page.url()).pathname, "le clic ne devait rien ouvrir").toBe("/membres");
+
+  // Et il ne reste pas ouvert par-dessus la page d'arrivée.
+  await bouton.click();
+  await page.locator('header details[open] nav a:has-text("Duels")').click();
+  await page.waitForURL("**/duels");
+  await expect(ouvert).toHaveCount(0);
+});
