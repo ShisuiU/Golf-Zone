@@ -50,7 +50,14 @@ function getPool(): Pool {
   return pool;
 }
 
-/** Crée le schéma au premier accès. Idempotent. */
+/**
+ * Crée le schéma au premier accès. Idempotent.
+ *
+ * En cas d'échec, la promesse mémorisée est effacée pour que la requête
+ * suivante réessaie : une base momentanément injoignable — Neon qui se
+ * réveille trop lentement, par exemple — casserait sinon l'instance
+ * définitivement, alors que le problème a duré une seconde.
+ */
 function ensureSchema(): Promise<void> {
   schemaReady ??= (async () => {
     await getPool().query(`
@@ -138,8 +145,50 @@ function ensureSchema(): Promise<void> {
       );
       CREATE INDEX IF NOT EXISTS notifications_inbox
         ON notifications (user_id, created_at DESC);
+
+      -- Jetons à usage unique : réinitialisation de mot de passe et
+      -- confirmation d'e-mail. Même principe que les sessions — seule
+      -- l'empreinte est en base, le jeton en clair ne vit que dans le lien
+      -- envoyé par courrier.
+      CREATE TABLE IF NOT EXISTS tokens (
+        token_hash TEXT PRIMARY KEY,
+        user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        purpose    TEXT NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL,
+        used_at    TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS tokens_user ON tokens (user_id, purpose);
+
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMPTZ;
+
+      -- Tentatives de connexion ratées, comptées par e-mail et par adresse IP.
+      CREATE TABLE IF NOT EXISTS login_attempts (
+        key          TEXT PRIMARY KEY,
+        failures     INTEGER NOT NULL DEFAULT 0,
+        locked_until TIMESTAMPTZ,
+        updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+
+      -- Signalements. Le rapporteur peut disparaître sans emporter le
+      -- signalement (SET NULL), mais un contenu supprimé emporte le sien :
+      -- il n'y a plus rien à modérer.
+      CREATE TABLE IF NOT EXISTS reports (
+        id          SERIAL PRIMARY KEY,
+        reporter_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        dossier_id  INTEGER REFERENCES dossiers(id) ON DELETE CASCADE,
+        comment_id  INTEGER REFERENCES comments(id) ON DELETE CASCADE,
+        reason      TEXT NOT NULL,
+        created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+        handled_at  TIMESTAMPTZ,
+        CHECK ((dossier_id IS NULL) <> (comment_id IS NULL))
+      );
+      CREATE INDEX IF NOT EXISTS reports_open ON reports (handled_at, created_at DESC);
     `);
-  })();
+  })().catch((error) => {
+    schemaReady = undefined;
+    throw error;
+  });
   return schemaReady;
 }
 
@@ -218,6 +267,175 @@ export async function updatePassword(userId: number, passwordHash: string): Prom
  */
 export async function deleteUser(userId: number): Promise<void> {
   await query("DELETE FROM users WHERE id = $1", [userId]);
+}
+
+/* ----------------------------------------------------------------- jetons */
+
+export type TokenPurpose = "reset" | "verify";
+
+export async function insertToken(
+  tokenHash: string,
+  userId: number,
+  purpose: TokenPurpose,
+  expiresAt: Date,
+): Promise<void> {
+  await query(
+    "INSERT INTO tokens (token_hash, user_id, purpose, expires_at) VALUES ($1, $2, $3, $4)",
+    [tokenHash, userId, purpose, expiresAt],
+  );
+}
+
+/**
+ * Consomme un jeton : il est marqué utilisé dans la même requête que sa
+ * lecture, donc deux clics simultanés sur le même lien ne peuvent pas le
+ * valider deux fois.
+ */
+export async function spendToken(
+  tokenHash: string,
+  purpose: TokenPurpose,
+): Promise<number | undefined> {
+  const rows = await query<{ user_id: number }>(
+    `UPDATE tokens SET used_at = now()
+      WHERE token_hash = $1 AND purpose = $2 AND used_at IS NULL AND expires_at > now()
+      RETURNING user_id`,
+    [tokenHash, purpose],
+  );
+  return rows[0]?.user_id;
+}
+
+/** Un nouveau lien invalide les précédents du même usage. */
+export async function dropTokens(userId: number, purpose: TokenPurpose): Promise<void> {
+  await query("DELETE FROM tokens WHERE user_id = $1 AND purpose = $2", [userId, purpose]);
+}
+
+export async function markEmailVerified(userId: number): Promise<void> {
+  await query("UPDATE users SET email_verified_at = now() WHERE id = $1", [userId]);
+}
+
+export async function isEmailVerified(userId: number): Promise<boolean> {
+  const rows = await query<{ verified: boolean }>(
+    "SELECT email_verified_at IS NOT NULL AS verified FROM users WHERE id = $1",
+    [userId],
+  );
+  return rows[0]?.verified ?? false;
+}
+
+/* ------------------------------------------------- tentatives de connexion */
+
+/**
+ * Compte les échecs et verrouille temporairement. Une seule requête fait tout :
+ * incrémente, et pose la date de déblocage au passage du seuil. Le verrou est
+ * en base parce que chaque instance serverless a sa propre mémoire — un
+ * compteur en RAM ne protégerait rien.
+ */
+export async function recordLoginFailure(
+  key: string,
+  threshold: number,
+  lockMinutes: number,
+): Promise<void> {
+  await query(
+    `INSERT INTO login_attempts (key, failures, updated_at)
+     VALUES ($1, 1, now())
+     ON CONFLICT (key) DO UPDATE
+        SET failures = login_attempts.failures + 1,
+            updated_at = now(),
+            locked_until = CASE
+              WHEN login_attempts.failures + 1 >= $2 THEN now() + ($3 || ' minutes')::interval
+              ELSE login_attempts.locked_until
+            END`,
+    [key, threshold, String(lockMinutes)],
+  );
+}
+
+/** Secondes restantes avant de pouvoir réessayer, 0 si la voie est libre. */
+export async function lockedFor(keys: string[]): Promise<number> {
+  const rows = await query<{ seconds: number }>(
+    `SELECT ceil(extract(epoch FROM max(locked_until) - now()))::int AS seconds
+       FROM login_attempts
+      WHERE key = ANY($1) AND locked_until > now()`,
+    [keys],
+  );
+  return rows[0]?.seconds ?? 0;
+}
+
+/** Une connexion réussie remet les compteurs à zéro. */
+export async function clearLoginFailures(keys: string[]): Promise<void> {
+  await query("DELETE FROM login_attempts WHERE key = ANY($1)", [keys]);
+}
+
+/* ---------------------------------------------------------- signalements */
+
+export async function addReport(input: {
+  reporterId: number;
+  postId?: number;
+  commentId?: number;
+  reason: string;
+}): Promise<void> {
+  await query(
+    "INSERT INTO reports (reporter_id, dossier_id, comment_id, reason) VALUES ($1, $2, $3, $4)",
+    [input.reporterId, input.postId ?? null, input.commentId ?? null, input.reason],
+  );
+}
+
+export type Report = {
+  id: number;
+  reason: string;
+  createdAt: Date;
+  reporter: string | null;
+  postId: number | null;
+  commentId: number | null;
+  /** Publication à ouvrir pour voir le contenu en contexte, commentaire compris. */
+  contextPostId: number;
+  author: string;
+  content: string;
+  photoId: number | null;
+};
+
+/** Signalements en attente, le plus ancien d'abord : on traite dans l'ordre. */
+export async function listOpenReports(): Promise<Report[]> {
+  return query<Report>(
+    `SELECT r.id,
+            r.reason,
+            r.created_at AS "createdAt",
+            rep.handle AS reporter,
+            r.dossier_id AS "postId",
+            r.comment_id AS "commentId",
+            COALESCE(r.dossier_id, c.dossier_id) AS "contextPostId",
+            COALESCE(du.handle, cu.handle) AS author,
+            COALESCE(d.caption, c.body) AS content,
+            (SELECT p.id FROM photos p
+              WHERE p.dossier_id = COALESCE(r.dossier_id, c.dossier_id)
+              ORDER BY p.created_at DESC LIMIT 1) AS "photoId"
+       FROM reports r
+       LEFT JOIN users rep ON rep.id = r.reporter_id
+       LEFT JOIN dossiers d ON d.id = r.dossier_id
+       LEFT JOIN users du ON du.id = d.user_id
+       LEFT JOIN comments c ON c.id = r.comment_id
+       LEFT JOIN users cu ON cu.id = c.user_id
+      WHERE r.handled_at IS NULL
+      ORDER BY r.created_at
+      LIMIT 100`,
+  );
+}
+
+export async function countOpenReports(): Promise<number> {
+  const rows = await query<{ count: number }>(
+    "SELECT count(*)::int AS count FROM reports WHERE handled_at IS NULL",
+  );
+  return rows[0]?.count ?? 0;
+}
+
+export async function closeReport(reportId: number): Promise<void> {
+  await query("UPDATE reports SET handled_at = now() WHERE id = $1", [reportId]);
+}
+
+/** Suppression par la modération : le signalement se ferme avec le contenu. */
+export async function deletePostAsModerator(postId: number): Promise<void> {
+  await query("DELETE FROM dossiers WHERE id = $1", [postId]);
+}
+
+export async function deleteCommentAsModerator(commentId: number): Promise<void> {
+  await query("DELETE FROM comments WHERE id = $1", [commentId]);
 }
 
 /* --------------------------------------------------------------- profils */

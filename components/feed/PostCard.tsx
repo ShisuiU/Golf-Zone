@@ -4,6 +4,7 @@ import { removePost } from "@/app/actions/post";
 import { Avatar } from "@/components/feed/Avatar";
 import { CommentSection } from "@/components/feed/CommentSection";
 import { LikeButton } from "@/components/feed/LikeButton";
+import { ReportButton } from "@/components/feed/ReportButton";
 import { Time } from "@/components/feed/Time";
 import type { FeedEntry } from "@/lib/db";
 
@@ -77,6 +78,12 @@ export function PostCard({
             ? `${post.comments.length} commentaire${post.comments.length > 1 ? "s" : ""}`
             : ""}
         </span>
+        {/* Signaler la publication d'un autre : la sienne, on la supprime. */}
+        {viewerHandle && !isMine ? (
+          <span className="ml-auto">
+            <ReportButton postId={post.id} />
+          </span>
+        ) : null}
       </div>
 
       <CommentSection

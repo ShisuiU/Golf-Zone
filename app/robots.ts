@@ -8,7 +8,7 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       // Espaces personnels : rien à indexer, et rien qu'un robot puisse voir
       // de toute façon.
-      disallow: ["/profil", "/compte", "/notifications"],
+      disallow: ["/profil", "/compte", "/notifications", "/moderation", "/reinitialiser", "/confirmer"],
     },
     sitemap: new URL("/sitemap.xml", SITE_URL).toString(),
   };

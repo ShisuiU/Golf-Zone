@@ -24,6 +24,11 @@ export default async function ConnexionPage() {
         <LoginForm />
       </div>
       <p className="mt-6 text-center text-sm text-muted">
+        <Link href="/mot-de-passe-oublie" className="underline">
+          Mot de passe oublié ?
+        </Link>
+      </p>
+      <p className="mt-3 text-center text-sm text-muted">
         Pas encore de compte ?{" "}
         <Link href="/inscription" className="underline">
           Créer un compte

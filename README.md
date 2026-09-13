@@ -20,6 +20,10 @@ n'est utilisé.
 - **Notifications** : likes et commentaires reçus, compteur dans l'en-tête.
 - **Compte** `/compte` : changer son mot de passe, se déconnecter, supprimer
   son compte (et tout ce qu'il a publié).
+- **Sécurité du compte** : mot de passe oublié, confirmation d'adresse,
+  limitation des tentatives de connexion.
+- **Modération** : signaler une publication ou un commentaire, file de
+  traitement pour les modérateurs.
 - **Pages légales** : mentions et confidentialité.
 - **Duels** sur leur propre page `/duels`, annoncés comme non ouverts. Le site
   est d'abord un espace de partage ; la compétition vient en plus.
@@ -62,6 +66,9 @@ app/
   publication/[id] lien permanent d'une publication
   notifications/   likes et commentaires reçus
   compte/          mot de passe, déconnexion, suppression
+  moderation/      file des signalements (modérateurs seulement)
+  confirmer/[token]     confirmation d'adresse
+  (auth)/reinitialiser/ nouveau mot de passe depuis le lien reçu
   mentions/        mentions légales
   confidentialite/ ce qui est collecté, et comment tout effacer
   not-found.tsx    404
@@ -84,6 +91,10 @@ lib/
   photo.ts         validation des images déposées
   post.ts          règles partagées formulaire / serveur (générations, longueurs)
   profile.ts       validation de la fiche de profil
+  mail.ts          envoi de courrier (Resend), sans dépendance
+  notify-mail.ts   les deux courriers transactionnels du site
+  tokens.ts        jetons des liens reçus par courrier
+  throttle.ts      limitation des tentatives de connexion
   content.ts       textes de l'en-tête et libellés partagés
 proxy.ts           pré-filtrage des routes membres
 ```
@@ -162,6 +173,43 @@ Supprimer son compte efface publications, photos, commentaires, likes et
 sessions : les clés étrangères sont en cascade. C'est confirmé par le mot de
 passe et un mot à recopier, parce que c'est irréversible.
 
+## Sécurité du compte
+
+**Tentatives de connexion.** Deux compteurs : par e-mail (5 échecs, 15 minutes
+de pause) contre l'essai de mots de passe sur un compte précis, par adresse IP
+(20 échecs) contre le balayage de plusieurs comptes depuis la même machine — le
+second est plus large parce qu'une adresse peut être partagée par tout un
+immeuble. Le décompte vit en base : chaque instance serverless a sa propre
+mémoire, un compteur en RAM ne protégerait rien. Le verrou est consulté
+**avant** toute vérification, sinon essayer des mots de passe resterait
+gratuit.
+
+**Mot de passe oublié et confirmation d'adresse.** Les liens portent un jeton
+aléatoire de 256 bits dont la base ne garde que l'empreinte, comme les
+sessions. Le jeton est consommé dans la requête qui le lit, donc un lien ne
+sert qu'une fois même si l'on clique deux fois. Une réinitialisation vaut une
+heure, une confirmation une semaine, et un nouveau lien invalide le précédent.
+La page de réinitialisation ne vérifie pas le jeton à l'affichage : le
+consommer là suffirait à ce qu'un aperçu de lien par une messagerie le brûle
+avant que le destinataire n'ait rien saisi.
+
+La demande répond la même chose que l'adresse existe ou non — autrement, la
+page dirait qui est inscrit. Seule exception : quand le site ne sait pas encore
+envoyer de courrier, il le dit, parce qu'un « vérifiez vos e-mails » qui ne
+mène à rien est pire que rien.
+
+## Modération
+
+Un membre peut signaler la publication ou le commentaire d'un autre. Les
+signalements s'empilent dans `/moderation`, ouverte aux seuls pseudos listés
+dans `ZONE_GOLF_MODERATEURS` — pour tous les autres, la page **n'existe pas**,
+un 403 confirmerait qu'il y a quelque chose à cette adresse.
+
+Pas de colonne « administrateur » en base : le jour où l'on donne ce droit
+depuis le site, il faut une page pour le retirer, une trace de qui l'a donné,
+et de quoi empêcher un compte compromis de se l'octroyer. Une variable
+d'environnement se change en une minute et ne se pirate pas depuis le site.
+
 ## Profils
 
 Le pseudo d'une publication mène au profil de son auteur. La fiche stocke
@@ -215,6 +263,12 @@ n'est nécessaire, et chaque push sur la branche de production redéploie.
 - **Node.js Version : 22.x ou plus** — la version sur laquelle le projet est
   développé et testé, déclarée dans `engines.node`.
 - **Aucune variable d'environnement n'est requise** pour la landing seule.
+- Pour que le mot de passe oublié fonctionne : un compte
+  [Resend](https://resend.com) (gratuit jusqu'à 3 000 e-mails par mois), un
+  domaine vérifié chez eux, puis `RESEND_API_KEY` et `MAIL_FROM` côté Vercel.
+  Sans cela le reste du site marche, mais un membre qui perd son mot de passe
+  ne peut pas récupérer son compte.
+- Pour traiter les signalements : `ZONE_GOLF_MODERATEURS=votrepseudo`.
 - Pour ouvrir la communauté : créer une base Postgres gérée, coller son URL
   dans `DATABASE_URL` côté Vercel, redéployer. Le schéma se crée tout seul au
   premier accès.
@@ -269,11 +323,8 @@ en desktop et mobile) ont été produites en amont sur un canvas séparé.
 4. ~~Profils, annuaire des membres, notifications, pagination.~~
 5. Duels : appariement, vote (1 membre = 1 voix), verdict.
 
-Restent à faire, par ordre d'urgence quand le site s'ouvrira vraiment :
+Restent à faire :
 
-- **Compte** : confirmation d'e-mail, réinitialisation du mot de passe,
-  limitation des tentatives de connexion.
-- **Modération** : signaler une publication ou un commentaire.
 - **Contenu** : plusieurs photos par publication, recherche.
 - **Mentions légales** : le nom et l'adresse de contact de l'éditeur y sont
   encore à compléter — la loi impose de les publier.

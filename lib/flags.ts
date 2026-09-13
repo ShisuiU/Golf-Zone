@@ -27,6 +27,29 @@ export const ACCOUNTS_ENABLED = hasDatabase && override !== false;
 export const LIVE_FEED = ACCOUNTS_ENABLED;
 
 /**
+ * Pseudos des modérateurs, en clair dans la configuration
+ * (`ZONE_GOLF_MODERATEURS=shisuigte,autre`).
+ *
+ * Pas de colonne « administrateur » en base : le jour où l'on donne ce droit
+ * depuis le site, il faut une page pour le retirer, une trace de qui l'a
+ * donné, et de quoi éviter qu'un compte compromis se l'octroie. Une variable
+ * d'environnement se change en une minute et ne se pirate pas depuis le site.
+ */
+const MODERATORS = new Set(
+  (process.env.ZONE_GOLF_MODERATEURS ?? "")
+    .split(",")
+    .map((h) => h.trim().toLowerCase().replace(/^@/, ""))
+    .filter(Boolean),
+);
+
+export function isModerator(handle: string | undefined): boolean {
+  return handle !== undefined && MODERATORS.has(handle.toLowerCase());
+}
+
+/** Y a-t-il seulement quelqu'un pour modérer ? */
+export const HAS_MODERATION = MODERATORS.size > 0;
+
+/**
  * Cible des appels à l'action : l'inscription quand les comptes sont ouverts,
  * sinon la section qui explique le fonctionnement — jamais une route en 404.
  */

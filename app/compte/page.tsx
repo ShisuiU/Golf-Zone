@@ -4,9 +4,11 @@ import { notFound } from "next/navigation";
 import { logout } from "@/app/actions/auth";
 import { DeleteAccountForm } from "@/components/compte/DeleteAccountForm";
 import { PasswordForm } from "@/components/compte/PasswordForm";
+import { VerifyEmail } from "@/components/compte/VerifyEmail";
 import { SiteHeader } from "@/components/SiteHeader";
 import { requireUser } from "@/lib/dal";
-import { ACCOUNTS_ENABLED } from "@/lib/flags";
+import { isEmailVerified } from "@/lib/db";
+import { ACCOUNTS_ENABLED, isModerator } from "@/lib/flags";
 
 export const metadata: Metadata = {
   title: "Mon compte — Zone Golf",
@@ -15,6 +17,7 @@ export const metadata: Metadata = {
 export default async function ComptePage() {
   if (!ACCOUNTS_ENABLED) notFound();
   const user = await requireUser();
+  const verified = await isEmailVerified(user.id);
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -31,6 +34,17 @@ export default async function ComptePage() {
         </p>
 
         <div className="flex flex-col gap-8">
+          {verified ? null : <VerifyEmail />}
+
+          {isModerator(user.handle) ? (
+            <p className="border border-hairline bg-surface p-4 text-[15px] text-body">
+              <Link href="/moderation" className="underline">
+                File de modération
+              </Link>{" "}
+              — les contenus signalés par la communauté.
+            </p>
+          ) : null}
+
           <PasswordForm />
 
           <form action={logout}>

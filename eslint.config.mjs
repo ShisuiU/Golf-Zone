@@ -13,6 +13,17 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    rules: {
+      // Les Server Actions reçoivent (prevState, formData) même quand elles
+      // n'en lisent qu'un : le préfixe `_` dit que l'argument est là par
+      // contrat, pas par oubli.
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;

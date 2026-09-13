@@ -5,6 +5,7 @@ import Link from "next/link";
 import { commentPost, removeComment, type CommentState } from "@/app/actions/post";
 import { MAX_COMMENT } from "@/lib/post";
 import { Avatar } from "@/components/feed/Avatar";
+import { ReportButton } from "@/components/feed/ReportButton";
 import { Time } from "@/components/feed/Time";
 import type { Comment } from "@/lib/db";
 
@@ -51,6 +52,10 @@ export function CommentSection({ postId, comments, viewerHandle }: Props) {
                     supprimer
                   </button>
                 </form>
+              ) : viewerHandle ? (
+                <span className="ml-2 inline-block align-baseline">
+                  <ReportButton commentId={comment.id} small />
+                </span>
               ) : null}
               </p>
             </li>

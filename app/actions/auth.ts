@@ -11,6 +11,8 @@ import {
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { createSession, destroySession } from "@/lib/session";
 import { ACCOUNTS_ENABLED } from "@/lib/flags";
+import { loginBlockedFor, noteLoginFailure, noteLoginSuccess, waitLabel } from "@/lib/throttle";
+import { sendVerificationLink } from "@/lib/notify-mail";
 
 export type AuthState = {
   errors?: Record<string, string>;
@@ -86,6 +88,10 @@ export async function signup(_prev: AuthState, formData: FormData): Promise<Auth
   });
   await createSession(user.id);
 
+  // L'envoi ne doit pas faire échouer l'inscription : le membre peut toujours
+  // redemander le lien depuis son compte.
+  await sendVerificationLink(user.id, user.email);
+
   // redirect() lève une exception de contrôle de flux : hors de tout try/catch.
   redirect("/profil");
 }
@@ -101,15 +107,27 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
     return { errors: { form: "Renseignez votre e-mail et votre mot de passe." }, values };
   }
 
+  // Le verrou est consulté avant toute vérification : sans cela, essayer des
+  // mots de passe resterait gratuit, seule la réponse changerait.
+  const wait = await loginBlockedFor(email);
+  if (wait > 0) {
+    return {
+      errors: { form: `Trop de tentatives. Réessayez dans ${waitLabel(wait)}.` },
+      values,
+    };
+  }
+
   const user = await findUserByEmail(email);
   const ok = user ? await verifyPassword(password, user.password_hash) : false;
 
   // Un seul message pour « e-mail inconnu » et « mot de passe faux » : sinon la
   // page devient un moyen de vérifier qui est inscrit.
   if (!user || !ok) {
+    await noteLoginFailure(email);
     return { errors: { form: "E-mail ou mot de passe incorrect." }, values };
   }
 
+  await noteLoginSuccess(email);
   await createSession(user.id);
   redirect("/profil");
 }

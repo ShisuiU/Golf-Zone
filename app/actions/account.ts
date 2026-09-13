@@ -1,9 +1,17 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { deleteUser, findPasswordHash, updatePassword, deleteSessionsOfUser } from "@/lib/db";
+import {
+  deleteUser,
+  findPasswordHash,
+  isEmailVerified,
+  updatePassword,
+  deleteSessionsOfUser,
+} from "@/lib/db";
 import { requireUser } from "@/lib/dal";
 import { ACCOUNTS_ENABLED } from "@/lib/flags";
+import { MAIL_ENABLED } from "@/lib/mail";
+import { sendVerificationLink } from "@/lib/notify-mail";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { createSession, destroySession } from "@/lib/session";
 
@@ -72,4 +80,23 @@ export async function deleteAccount(
   await deleteUser(user.id);
   await destroySession();
   redirect("/");
+}
+
+export type VerifyState = { sent?: boolean; error?: string };
+
+/** Renvoyer le lien de confirmation d'adresse. */
+export async function resendVerification(
+  _prev: VerifyState,
+  _formData: FormData,
+): Promise<VerifyState> {
+  if (!ACCOUNTS_ENABLED) return { error: "Les comptes ne sont pas ouverts." };
+  if (!MAIL_ENABLED) {
+    return { error: "L'envoi d'e-mails n'est pas encore configuré sur le site." };
+  }
+
+  const user = await requireUser();
+  if (await isEmailVerified(user.id)) return { sent: true };
+
+  const sent = await sendVerificationLink(user.id, user.email);
+  return sent ? { sent: true } : { error: "Envoi impossible. Réessayez plus tard." };
 }
