@@ -115,19 +115,27 @@ test("une carte a la même largeur dans le fil et sur son lien permanent", async
   // 768 : la colonne latérale n'est pas encore là. 1440 : elle l'est.
   for (const largeur of [768, 820, 1440]) {
     await page.setViewportSize({ width: largeur, height: 1000 });
-    await page.goto("/");
-    const carte = page.locator("article").first();
-    const dansLeFil = await carte.evaluate((e) => (e as HTMLElement).offsetWidth);
-    await carte.getByRole("link", { name: /il y a|à l'instant/ }).click();
-    await page.waitForURL(/\/publication\//);
     // La photo se déplace d'une page à l'autre : mesurée pendant la
-    // transition, WebKit renvoie 0. On attend que la carte soit posée.
-    const arrivee = page.locator("article").first();
-    await expect(arrivee).toBeVisible();
-    await expect
-      .poll(() => arrivee.evaluate((e) => (e as HTMLElement).offsetWidth))
-      .toBeGreaterThan(0);
-    const surSaPage = await arrivee.evaluate((e) => (e as HTMLElement).offsetWidth);
+    // transition, WebKit renvoie 0. On attend que la carte soit posée, des
+    // deux côtés du lien.
+    const largeurPosee = async () => {
+      const carte = page.locator("article").first();
+      await expect(carte).toBeVisible();
+      await expect
+        .poll(() => carte.evaluate((e) => (e as HTMLElement).offsetWidth))
+        .toBeGreaterThan(0);
+      return carte.evaluate((e) => (e as HTMLElement).offsetWidth);
+    };
+
+    await page.goto("/");
+    const dansLeFil = await largeurPosee();
+    await page
+      .locator("article")
+      .first()
+      .getByRole("link", { name: /il y a|à l'instant/ })
+      .click();
+    await page.waitForURL(/\/publication\//);
+    const surSaPage = await largeurPosee();
     expect(dansLeFil, `largeur de la carte à ${largeur}px`).toBe(surSaPage);
   }
 });
