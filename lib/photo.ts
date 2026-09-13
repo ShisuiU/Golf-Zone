@@ -1,4 +1,5 @@
 import "server-only";
+import { stripMetadata } from "@/lib/exif";
 
 /**
  * Règles de validation des images déposées.
@@ -47,5 +48,7 @@ export async function validatePhoto(file: File | null): Promise<PhotoCheck> {
     return { ok: false, error: "Format non reconnu. Utilisez un JPEG, un PNG ou un WebP." };
   }
 
-  return { ok: true, data, mime: sniffed };
+  // Le nettoyage vient après la validation : on ne touche qu'à des octets
+  // dont on a reconnu le format.
+  return { ok: true, data: stripMetadata(data, sniffed), mime: sniffed };
 }

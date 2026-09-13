@@ -81,11 +81,14 @@ export function PostCard({
           liked={post.likedByMe}
           canInteract={viewerHandle !== null}
         />
-        <span className="font-mono text-[13px] text-muted">
-          {post.comments.length > 0
-            ? `${post.comments.length} commentaire${post.comments.length > 1 ? "s" : ""}`
-            : ""}
-        </span>
+        {post.commentCount > 0 ? (
+          <Link
+            href={`/publication/${post.id}`}
+            className="font-mono text-[13px] text-muted transition-colors duration-150 hover:text-ink"
+          >
+            {post.commentCount} commentaire{post.commentCount > 1 ? "s" : ""}
+          </Link>
+        ) : null}
         {/* Signaler la publication d'un autre : la sienne, on la supprime. */}
         {viewerHandle && !isMine ? (
           <span className="ml-auto">
@@ -97,6 +100,8 @@ export function PostCard({
       <CommentSection
         postId={post.id}
         comments={post.comments}
+        // Le fil n'en montre que les derniers : le dire, et ouvrir la suite.
+        hidden={post.commentCount - post.comments.length}
         viewerHandle={viewerHandle}
         promptSignup={promptSignup}
       />

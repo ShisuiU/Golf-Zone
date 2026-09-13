@@ -86,6 +86,9 @@ function ensureSchema(): Promise<void> {
         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
       );
       CREATE INDEX IF NOT EXISTS dossiers_recent ON dossiers (created_at DESC);
+      -- L'annuaire compte les publications de chaque membre par sous-requête :
+      -- sans cet index, c'est un balayage complet de la table par membre affiché.
+      CREATE INDEX IF NOT EXISTS dossiers_author ON dossiers (user_id);
 
       CREATE TABLE IF NOT EXISTS photos (
         id         SERIAL PRIMARY KEY,
@@ -635,6 +638,8 @@ export type FeedEntry = {
   createdAt: Date;
   likeCount: number;
   likedByMe: boolean;
+  /** Nombre total, qui peut dépasser ce que `comments` contient. */
+  commentCount: number;
   comments: Comment[];
 };
 
@@ -684,11 +689,21 @@ export async function createPost(input: {
 /** Nombre de publications ramenées par page de fil. */
 export const FEED_PAGE = 20;
 
+/**
+ * Commentaires joints à une publication dans le fil.
+ *
+ * Sans plafond, une discussion à cent messages était rechargée en entier à
+ * chaque affichage de la page d'accueil, pour chacune des vingt publications.
+ * La conversation complète est sur le lien permanent.
+ */
+const FEED_COMMENTS = 3;
+
 async function listPosts(
   viewerId: number | null,
   where: string,
   params: unknown[],
   limit = 50,
+  commentLimit = FEED_COMMENTS,
 ) {
   return query<FeedEntry>(
     `SELECT d.id,
@@ -705,9 +720,13 @@ async function listPosts(
               SELECT 1 FROM likes l
                WHERE l.dossier_id = d.id AND l.user_id = $1
             ) AS "likedByMe",
+            (SELECT count(*)::int FROM comments cm WHERE cm.dossier_id = d.id)
+              AS "commentCount",
             COALESCE((
               SELECT json_agg(c ORDER BY c."createdAt")
                 FROM (
+                  -- Les derniers d'abord pour la coupe, puis remis dans
+                  -- l'ordre de lecture par le json_agg ci-dessus.
                   SELECT cm.id,
                          cu.handle,
                          cu.avatar_photo_id AS "avatarPhotoId",
@@ -716,7 +735,8 @@ async function listPosts(
                     FROM comments cm
                     JOIN users cu ON cu.id = cm.user_id
                    WHERE cm.dossier_id = d.id
-                   ORDER BY cm.created_at
+                   ORDER BY cm.created_at DESC
+                   LIMIT ${commentLimit}
                 ) c
             ), '[]'::json) AS comments
        FROM dossiers d
@@ -732,8 +752,12 @@ async function listPosts(
 }
 
 /** Une publication précise, avec ses commentaires. */
-export async function findPost(postId: number, viewerId: number | null): Promise<FeedEntry | undefined> {
-  const rows = await listPosts(viewerId, "WHERE d.id = $2", [postId]);
+export async function findPost(
+  postId: number,
+  viewerId: number | null,
+): Promise<FeedEntry | undefined> {
+  // Sur le lien permanent, on vient lire la discussion : pas de coupe à trois.
+  const rows = await listPosts(viewerId, "WHERE d.id = $2", [postId], 1, 500);
   return rows[0];
 }
 

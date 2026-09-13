@@ -14,12 +14,15 @@ const MAX_BYTES = 2 * 1024 * 1024; // doit rester aligné sur lib/photo.ts
  * évite d'installer une bibliothèque de traitement d'image côté serveur.
  * La validation reste faite côté serveur : ceci n'est qu'un confort.
  */
+/**
+ * Réduit et **réencode systématiquement**, même quand l'image est déjà légère :
+ * repasser par un canvas est ce qui efface les métadonnées du téléphone, dont
+ * les coordonnées GPS de la prise de vue. Le serveur les retire aussi de son
+ * côté — celui-ci n'est qu'un confort, et une économie de bande passante.
+ */
 async function compress(file: File, maxEdge: number): Promise<File> {
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
-
-  // Déjà raisonnable et pas trop lourde : inutile de la réencoder.
-  if (scale === 1 && file.size <= 1_500_000) return file;
 
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(bitmap.width * scale);
@@ -32,7 +35,9 @@ async function compress(file: File, maxEdge: number): Promise<File> {
   const blob = await new Promise<Blob | null>((resolve) =>
     canvas.toBlob(resolve, "image/jpeg", QUALITY),
   );
-  if (!blob || blob.size >= file.size) return file;
+  // Un fichier plus lourd après réencodage reste préférable au fichier
+  // d'origine, qui, lui, porte encore ses métadonnées.
+  if (!blob) return file;
 
   return new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
 }

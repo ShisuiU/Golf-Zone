@@ -17,9 +17,11 @@ type Props = {
   viewerHandle: string | null;
   /** Inviter le visiteur à s'inscrire : une fois par page, pas par carte. */
   promptSignup?: boolean;
+  /** Commentaires plus anciens non chargés dans le fil. */
+  hidden?: number;
 };
 
-export function CommentSection({ postId, comments, viewerHandle, promptSignup }: Props) {
+export function CommentSection({ postId, comments, viewerHandle, promptSignup, hidden }: Props) {
   const [state, formAction, pending] = useActionState(commentPost, EMPTY);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -30,6 +32,14 @@ export function CommentSection({ postId, comments, viewerHandle, promptSignup }:
 
   return (
     <div className="border-t border-hairline">
+      {hidden && hidden > 0 ? (
+        <p className="px-4 pt-3 text-[13px]">
+          <Link href={`/publication/${postId}`} className="hover:text-brand-soft">
+            Voir {hidden} commentaire{hidden > 1 ? "s" : ""} de plus
+          </Link>
+        </p>
+      ) : null}
+
       {comments.length > 0 ? (
         <ul className="flex flex-col gap-2.5 px-4 py-3">
           {comments.map((comment) => (

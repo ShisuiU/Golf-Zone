@@ -137,6 +137,11 @@ Une seule requête ramène les publications, leurs compteurs de likes et leurs
 commentaires (`listFeed`). La base est à Francfort et le serveur à Paris :
 chaque aller-retour supplémentaire se paierait à chaque affichage.
 
+Le fil ne joint que les **trois derniers commentaires** de chaque publication,
+avec le compte réel et un lien vers la suite : sans ce plafond, une discussion
+à cent messages était rechargée en entier à chaque affichage de l'accueil, pour
+chacune des vingt publications. Le lien permanent, lui, montre tout.
+
 Le bouton « j'aime » met à jour le compteur **avant** la réponse du serveur
 (`useOptimistic`) — un like qui attend un aller-retour ne donne pas
 l'impression d'un réseau social. Un membre ne peut aimer qu'une fois : c'est
@@ -243,6 +248,17 @@ Les images sont stockées **dans Postgres** (`bytea`) et servies par
 `/photos/[id]` avec un cache immuable d'un an — un identifiant ne change jamais
 de contenu. Un seul service à administrer pour démarrer ; si le volume grossit,
 seul ce point de stockage est à déplacer vers un stockage objet.
+
+**Les métadonnées sont retirées** de toute image déposée : un téléphone y écrit
+la date, le modèle de l'appareil et surtout les **coordonnées GPS** de la prise
+de vue. Publier sa voiture garée devant chez soi reviendrait sinon à publier son
+adresse. Le navigateur réencode systématiquement l'image, ce qui les efface
+déjà — mais une Server Action accepte n'importe quel corps de requête, donc
+`lib/exif.ts` refait le travail côté serveur, sur des octets qu'on a lus
+soi-même. Pas de bibliothèque de traitement d'image : on retire les segments
+porteurs (APP1/APP13/COM en JPEG, blocs non essentiels en PNG, `EXIF`/`XMP ` en
+WebP) et on recopie le reste. Vérifié sur des fichiers réellement porteurs
+d'un EXIF GPS : métadonnées absentes après coup, image identique au pixel près.
 
 Trois garde-fous, dans cet ordre :
 
