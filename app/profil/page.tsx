@@ -32,7 +32,7 @@ export default async function ProfilPage() {
       <div aria-hidden="true" className="tech-grid pointer-events-none absolute inset-0" />
       <SiteHeader />
 
-      <main className="relative mx-auto w-full max-w-[680px] flex flex-1 flex-col px-4 py-6 lg:py-10">
+      <main id="contenu" tabIndex={-1} className="relative mx-auto w-full max-w-[680px] flex flex-1 flex-col px-4 py-6 lg:py-10">
         <div className="flex flex-col gap-5">
           <ProfileCard profile={profile} />
           <ProfileForm profile={profile} />

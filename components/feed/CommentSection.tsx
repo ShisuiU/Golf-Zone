@@ -45,7 +45,7 @@ export function CommentSection({ postId, comments, viewerHandle, promptSignup, h
           {comments.map((comment) => (
             <li key={comment.id} className="flex gap-2.5 text-[14px] leading-relaxed">
               <Avatar handle={comment.handle} photoId={comment.avatarPhotoId} size={26} />
-              <p className="min-w-0 flex-1">
+              <p className="min-w-0 flex-1 break-words">
               <Link
                 href={`/membre/${comment.handle}`}
                 className="font-cond font-semibold tracking-[0.02em] text-ink hover:text-brand"

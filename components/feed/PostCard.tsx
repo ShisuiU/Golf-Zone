@@ -35,7 +35,11 @@ export function PostCard({
           </Link>
           <p className="font-mono text-[10px] uppercase tracking-[0.05em] text-faint">
             {post.model ? `Golf ${post.model} · ` : ""}
-            <Link href={`/publication/${post.id}`} className="inline-block py-0.5 hover:text-brand">
+            {/* `-my-1.5` : de quoi viser au doigt sans écarter les lignes. */}
+            <Link
+              href={`/publication/${post.id}`}
+              className="-my-1.5 inline-flex min-h-[32px] items-center hover:text-brand"
+            >
               <Time date={post.createdAt} />
             </Link>
             {/* Une correction se voit : on ne réécrit pas le passé en silence. */}
@@ -75,7 +79,7 @@ export function PostCard({
       ) : null}
 
       {post.caption ? (
-        <p className="px-4 pt-3 text-[15px] leading-relaxed whitespace-pre-line text-body">
+        <p className="px-4 pt-3 text-[15px] leading-relaxed break-words whitespace-pre-line text-body">
           {post.caption}
         </p>
       ) : null}

@@ -32,7 +32,7 @@ export default async function ModerationPage() {
       <div aria-hidden="true" className="tech-grid pointer-events-none absolute inset-0" />
       <SiteHeader />
 
-      <main className="relative mx-auto w-full max-w-[760px] flex flex-1 flex-col px-4 py-6 lg:py-10">
+      <main id="contenu" tabIndex={-1} className="relative mx-auto w-full max-w-[760px] flex flex-1 flex-col px-4 py-6 lg:py-10">
         <h1 className="font-impact text-[26px] leading-tight lg:text-[32px]">Modération</h1>
         <p className="mt-2 mb-7 text-[15px] text-body">
           {reports.length === 0
@@ -49,7 +49,7 @@ export default async function ModerationPage() {
                 <Time date={report.createdAt} />
               </p>
 
-              <p className="mt-3 border-l-2 border-brand pl-3 text-[15px] leading-relaxed text-body">
+              <p className="mt-3 border-l-2 border-brand pl-3 text-[15px] leading-relaxed break-words text-body">
                 {report.reason}
               </p>
 
@@ -64,7 +64,7 @@ export default async function ModerationPage() {
                     unoptimized
                   />
                 ) : null}
-                <p className="min-w-0 flex-1 text-[14px] leading-relaxed whitespace-pre-line text-muted">
+                <p className="min-w-0 flex-1 text-[14px] leading-relaxed break-words whitespace-pre-line text-muted">
                   {report.content?.trim() || "(sans texte)"}
                 </p>
               </div>
@@ -72,7 +72,7 @@ export default async function ModerationPage() {
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <Link
                   href={`/publication/${report.contextPostId}`}
-                  className="inline-flex min-h-[40px] items-center font-cond text-sm font-semibold uppercase tracking-[0.05em] text-body transition-colors duration-150 hover:text-ink"
+                  className="inline-flex min-h-[44px] items-center font-cond text-sm font-semibold uppercase tracking-[0.05em] text-body transition-colors duration-150 hover:text-ink"
                 >
                   Voir en contexte
                 </Link>
@@ -93,7 +93,7 @@ export default async function ModerationPage() {
                   <input type="hidden" name="id" value={report.id} />
                   <button
                     type="submit"
-                    className="pressable min-h-[40px] cursor-pointer px-2 font-cond text-sm font-semibold uppercase tracking-[0.05em] text-muted hover:text-ink"
+                    className="pressable min-h-[44px] cursor-pointer px-2 font-cond text-sm font-semibold uppercase tracking-[0.05em] text-muted hover:text-ink"
                   >
                     Laisser en place
                   </button>

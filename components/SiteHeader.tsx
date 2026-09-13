@@ -109,8 +109,19 @@ export async function SiteHeader() {
 
   return (
     <header className="relative">
+      {/* Premier arrêt de tabulation du site. Sans lui, atteindre le contenu
+          au clavier demandait huit tabulations, sur chaque page. Invisible
+          tant qu'il n'a pas le focus, comme le veut l'usage. */}
+      <a
+        href="#contenu"
+        className="pressable bevel-sm sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:inline-flex focus:min-h-[44px] focus:items-center focus:bg-brand focus:px-4 focus:font-cond focus:text-[15px] focus:font-bold focus:uppercase focus:tracking-[0.06em] focus:text-graphite"
+      >
+        Aller au contenu
+      </a>
+
       <div className="flex items-center justify-between gap-4 border-b border-hairline px-5 py-4 lg:px-16 lg:py-6">
-        <Link href="/" className="pressable flex items-center gap-3 hover:text-ink">
+        {/* `-my-2` : la cible tactile fait 44 px sans grandir l'en-tête. */}
+        <Link href="/" className="pressable -my-2 flex min-h-[44px] items-center gap-3 hover:text-ink">
           <span className="font-impact text-lg tracking-[0.01em] text-ink lg:text-[23px]">
             {SITE_NAME.toUpperCase()}
           </span>
@@ -227,7 +238,7 @@ export async function SiteHeader() {
             />
             <Link
               href="/duels"
-              className="font-mono text-[10px] tracking-[0.05em] text-brand hover:text-brand-soft lg:text-[11px]"
+              className="-my-1.5 inline-flex min-h-[32px] items-center font-mono text-[10px] tracking-[0.05em] text-brand hover:text-brand-soft lg:text-[11px]"
             >
               Duels bientôt disponibles
             </Link>

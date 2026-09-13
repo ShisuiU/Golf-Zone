@@ -14,19 +14,19 @@ export function SiteFooter() {
         <p className="flex flex-wrap justify-center gap-x-1 gap-y-1 text-[13px] text-muted">
           <Link
             href="/mentions"
-            className="inline-flex min-h-[40px] items-center px-3 hover:text-ink"
+            className="inline-flex min-h-[44px] items-center px-3 hover:text-ink"
           >
             Mentions légales
           </Link>
           <Link
             href="/confidentialite"
-            className="inline-flex min-h-[40px] items-center px-3 hover:text-ink"
+            className="inline-flex min-h-[44px] items-center px-3 hover:text-ink"
           >
             Confidentialité
           </Link>
           <Link
             href="/membres"
-            className="inline-flex min-h-[40px] items-center px-3 hover:text-ink"
+            className="inline-flex min-h-[44px] items-center px-3 hover:text-ink"
           >
             Les membres
           </Link>

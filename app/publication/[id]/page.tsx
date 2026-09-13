@@ -47,7 +47,7 @@ export default async function PublicationPage({ params }: Params) {
       <div aria-hidden="true" className="tech-grid pointer-events-none absolute inset-0" />
       <SiteHeader />
 
-      <main className="relative mx-auto w-full max-w-[680px] flex flex-1 flex-col px-4 py-6 lg:py-10">
+      <main id="contenu" tabIndex={-1} className="relative mx-auto w-full max-w-[680px] flex flex-1 flex-col px-4 py-6 lg:py-10">
         <PostCard post={post} viewerHandle={viewer?.handle ?? null} />
 
         <p className="mt-8 border-t border-hairline pt-6 text-center text-sm text-muted">

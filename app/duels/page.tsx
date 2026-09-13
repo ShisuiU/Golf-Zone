@@ -36,7 +36,7 @@ export default async function DuelsPage() {
       <div aria-hidden="true" className="tech-grid pointer-events-none absolute inset-0" />
       <SiteHeader />
 
-      <main className="relative mx-auto w-full max-w-[860px] px-5 py-10 lg:py-16">
+      <main id="contenu" tabIndex={-1} className="relative mx-auto w-full max-w-[860px] px-5 py-10 lg:py-16">
         <span className="bevel-sm inline-block bg-brand px-3 py-1.5 font-mono text-[10px] font-bold tracking-[0.07em] text-graphite">
           En préparation
         </span>

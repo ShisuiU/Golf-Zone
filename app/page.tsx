@@ -187,7 +187,7 @@ export default async function Home({
       <div aria-hidden="true" className="tech-grid pointer-events-none absolute inset-0" />
       <SiteHeader />
 
-      <main className="relative mx-auto w-full max-w-[1004px] flex flex-1 flex-col px-4 py-6 lg:py-10">
+      <main id="contenu" tabIndex={-1} className="relative mx-auto w-full max-w-[1004px] flex flex-1 flex-col px-4 py-6 lg:py-10">
         {/* Un titre, même invisible : sans lui la page n'a pas de niveau 1,
             ce dont dépendent les lecteurs d'écran pour se repérer. */}
         {user ? <h1 className="sr-only">Le fil de Zone Golf</h1> : null}

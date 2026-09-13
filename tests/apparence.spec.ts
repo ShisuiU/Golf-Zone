@@ -114,3 +114,81 @@ test("une carte a la même largeur dans le fil et sur son lien permanent", async
     expect(dansLeFil, `largeur de la carte à ${largeur}px`).toBe(surSaPage);
   }
 });
+
+test("le clavier atteint le contenu en une tabulation", async ({ page }) => {
+  for (const chemin of ["/", "/membres", "/duels"]) {
+    await page.goto(chemin);
+    await page.keyboard.press("Tab");
+    const premier = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement | null;
+      return { texte: el?.textContent?.trim(), visible: el ? el.getBoundingClientRect().height > 0 : false };
+    });
+    expect(premier.texte, `premier arrêt de tabulation sur ${chemin}`).toBe("Aller au contenu");
+    // Un lien d'évitement invisible même au focus ne sert personne.
+    expect(premier.visible, `l'évitement est visible au focus sur ${chemin}`).toBe(true);
+
+    await page.keyboard.press("Enter");
+    await expect(page.locator("main#contenu")).toBeFocused();
+  }
+});
+
+test("les cibles tactiles font au moins 24 px", async ({ page }) => {
+  // WCAG 2.5.8 (AA) : 24×24 px pour toute cible qui n'est pas au fil du texte.
+  await signup(page, "doigts");
+  await publish(page, "Une publication à commenter du bout du doigt.");
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  for (const chemin of ["/", "/membres", "/profil", "/notifications", "/compte"]) {
+    await page.goto(chemin);
+    const petites = await page.evaluate(() =>
+      [...document.querySelectorAll("a, button, summary")]
+        .filter((e) => {
+          const r = e.getBoundingClientRect();
+          if (r.width === 0 || r.height === 0) return false;
+          if (getComputedStyle(e).display === "inline") return false;
+          return r.height < 24 || r.width < 24;
+        })
+        .map((e) => {
+          const r = e.getBoundingClientRect();
+          return `${e.tagName.toLowerCase()} « ${(e.textContent ?? "").trim().slice(0, 24)} » ${Math.round(r.width)}×${Math.round(r.height)}`;
+        }),
+    );
+    expect(petites, `cibles trop petites sur ${chemin}`).toEqual([]);
+  }
+});
+
+test("une adresse sans espace est coupée, pas poussée hors de l'écran", async ({ page }) => {
+  // Un lien de forum collé dans une bio ou une légende n'offre aucune césure
+  // naturelle : sans `break-words`, il sort de sa boîte.
+  const LIEN =
+    "https://www.forum-golf-mk2.example/discussions/restauration-complete-moteur-16-soupapes-2004";
+
+  await signup(page, "colleur");
+  await page.goto("/profil");
+  await page.click('button:has-text("Modifier mon profil")');
+  await page.fill("#bio", `Mon sujet : ${LIEN}`);
+  await page.fill("#car", "Golf2GTI16SEditionSpecialeAnniversaireAvecUnNomInterminable");
+  await page.click('button:has-text("Enregistrer")');
+  await page.waitForSelector("text=Profil enregistré");
+
+  await publish(page, `Voir ici : ${LIEN}`);
+  await page.fill("input[name=body]", LIEN);
+  await page.click('button:has-text("Envoyer")');
+  await expect(page.locator("main")).toContainText("forum-golf-mk2");
+
+  for (const largeur of [320, 390]) {
+    await page.setViewportSize({ width: largeur, height: 900 });
+    for (const chemin of ["/", "/profil", "/membre/colleur"]) {
+      await page.goto(chemin);
+      const fautifs = await page.evaluate(() =>
+        [...document.querySelectorAll("main *")]
+          .filter(
+            (e) =>
+              getComputedStyle(e).overflowX === "visible" && e.scrollWidth > e.clientWidth + 1,
+          )
+          .map((e) => `${e.tagName.toLowerCase()} ${e.scrollWidth}>${e.clientWidth}`),
+      );
+      expect(fautifs, `${chemin} à ${largeur}px`).toEqual([]);
+    }
+  }
+});

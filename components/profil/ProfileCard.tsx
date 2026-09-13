@@ -42,7 +42,7 @@ export function ProfileCard({ profile }: { profile: Profile }) {
       </div>
 
       {profile.bio ? (
-        <p className="mt-5 text-[15px] leading-relaxed whitespace-pre-line text-body">
+        <p className="mt-5 text-[15px] leading-relaxed break-words whitespace-pre-line text-body">
           {profile.bio}
         </p>
       ) : null}
@@ -54,7 +54,7 @@ export function ProfileCard({ profile }: { profile: Profile }) {
               key={fact}
               // Pas de `uppercase` : ce sont les mots du membre, on les laisse
               // tels qu'il les a écrits.
-              className="bevel-sm bg-graphite-deep px-3 py-1.5 font-cond text-[14px] font-semibold tracking-[0.02em] text-body"
+              className="bevel-sm max-w-full break-words bg-graphite-deep px-3 py-1.5 font-cond text-[14px] font-semibold tracking-[0.02em] text-body"
             >
               {fact}
             </li>
@@ -64,7 +64,10 @@ export function ProfileCard({ profile }: { profile: Profile }) {
 
       <div className="mt-6 flex gap-9 border-t border-hairline pt-5">
         <Stat value={profile.postCount} label={profile.postCount > 1 ? "publications" : "publication"} />
-        <Stat value={profile.likesReceived} label="likes reçus" />
+        <Stat
+          value={profile.likesReceived}
+          label={profile.likesReceived > 1 ? "likes reçus" : "like reçu"}
+        />
       </div>
     </section>
   );
