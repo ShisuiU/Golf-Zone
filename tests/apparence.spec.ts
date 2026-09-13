@@ -69,3 +69,48 @@ test("une page inconnue répond 404 avec la mise en page du site", async ({ page
   expect(reponse?.status()).toBe(404);
   await expect(page.locator("h1")).toContainText("n'existe pas");
 });
+
+test("un contenu long est abrégé, pas poussé hors de l'écran", async ({ page }) => {
+  await signup(page, "proprietaire-mk2-16s");
+  await page.goto("/profil");
+  await page.click('button:has-text("Modifier mon profil")');
+  await page.fill("#car", "Golf 2 GTI 16S Édition Spéciale Anniversaire");
+  await page.fill("#city", "Saint-Germain-en-Laye");
+  await page.click('button:has-text("Enregistrer")');
+  await page.waitForSelector("text=Profil enregistré");
+
+  for (const chemin of ["/membres", "/membre/proprietaire-mk2-16s"]) {
+    for (const largeur of [320, 390, 768]) {
+      await page.setViewportSize({ width: largeur, height: 900 });
+      await page.goto(chemin);
+      // Un texte coupé à l'ellipse a bien un contenu plus large que sa boîte :
+      // ce qui est fautif, c'est une boîte au débordement visible.
+      const fautifs = await page.evaluate(() =>
+        [...document.querySelectorAll("main *")]
+          .filter(
+            (e) =>
+              getComputedStyle(e).overflowX === "visible" && e.scrollWidth > e.clientWidth + 1,
+          )
+          .map((e) => `${e.tagName.toLowerCase()} « ${(e.textContent ?? "").trim().slice(0, 30)} »`),
+      );
+      expect(fautifs, `${chemin} à ${largeur}px`).toEqual([]);
+    }
+  }
+});
+
+test("une carte a la même largeur dans le fil et sur son lien permanent", async ({ page }) => {
+  await signup(page, "mesure");
+  await publish(page, "Une publication pour mesurer la colonne.");
+
+  // 768 : la colonne latérale n'est pas encore là. 1440 : elle l'est.
+  for (const largeur of [768, 820, 1440]) {
+    await page.setViewportSize({ width: largeur, height: 1000 });
+    await page.goto("/");
+    const carte = page.locator("article").first();
+    const dansLeFil = await carte.evaluate((e) => (e as HTMLElement).offsetWidth);
+    await carte.getByRole("link", { name: /il y a|à l'instant/ }).click();
+    await page.waitForURL(/\/publication\//);
+    const surSaPage = await page.locator("article").first().evaluate((e) => (e as HTMLElement).offsetWidth);
+    expect(dansLeFil, `largeur de la carte à ${largeur}px`).toBe(surSaPage);
+  }
+});

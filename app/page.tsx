@@ -187,12 +187,17 @@ export default async function Home({
       <div aria-hidden="true" className="tech-grid pointer-events-none absolute inset-0" />
       <SiteHeader />
 
-      <main className="relative mx-auto w-full max-w-[1060px] flex flex-1 flex-col px-4 py-6 lg:py-10">
+      <main className="relative mx-auto w-full max-w-[1004px] flex flex-1 flex-col px-4 py-6 lg:py-10">
         {/* Un titre, même invisible : sans lui la page n'a pas de niveau 1,
             ce dont dépendent les lecteurs d'écran pour se repérer. */}
         {user ? <h1 className="sr-only">Le fil de Zone Golf</h1> : null}
 
-        <div className="lg:grid lg:grid-cols-[minmax(0,680px)_296px] lg:justify-center lg:gap-7">
+        {/* 648 px, comme la colonne de lecture des autres pages : une carte
+            du fil et la même carte sur son lien permanent doivent avoir la
+            même largeur, sans quoi la photo change de taille en passant de
+            l'une à l'autre. Sans cette limite, le fil s'étirait à 790 px sur
+            une tablette, où la colonne latérale n'est pas encore là. */}
+        <div className="mx-auto w-full max-w-[648px] lg:mx-0 lg:max-w-none lg:grid lg:grid-cols-[minmax(0,648px)_296px] lg:justify-center lg:gap-7">
           <div className="flex min-w-0 flex-col gap-5">
             {cursor ? null : user ? (
               <Composer handle={user.handle} avatarPhotoId={user.avatarPhotoId} />

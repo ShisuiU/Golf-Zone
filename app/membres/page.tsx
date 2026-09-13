@@ -35,7 +35,10 @@ export default async function MembresPage() {
 
         <ul className="grid gap-3 sm:grid-cols-2">
           {members.map((member) => (
-            <li key={member.id}>
+            /* `min-w-0` : sans lui, la largeur minimale automatique d'une case
+               de grille est celle de son contenu, et un nom de voiture un peu
+               long pousse la carte hors de l'écran au lieu d'être abrégé. */
+            <li key={member.id} className="min-w-0">
               <Link
                 href={`/membre/${member.handle}`}
                 className="card card-link flex h-full items-center gap-4 p-4 hover:text-ink"

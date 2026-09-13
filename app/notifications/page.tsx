@@ -59,7 +59,7 @@ export default async function NotificationsPage() {
                     </span>{" "}
                     {n.kind === "like" ? "a aimé" : "a commenté"}{" "}
                     <span className="text-muted">{excerpt(n.caption, n.photoId !== null)}</span>
-                    <Time date={n.createdAt} className="ml-2 font-mono text-[10px] text-faint" />
+                    <Time date={n.createdAt} className="ml-2 font-mono text-[10px] text-muted" />
                   </p>
                   {n.isNew ? (
                     <span
