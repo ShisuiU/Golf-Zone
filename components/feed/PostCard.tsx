@@ -26,7 +26,10 @@ export function PostCard({
     <article className="surface">
       <header className="flex flex-wrap items-center gap-3 px-4 py-3">
         <Avatar handle={post.handle} photoId={post.avatarPhotoId} />
-        <div className="min-w-0 flex-1">
+        {/* `min-w-[9rem]` : sur un écran de 320 px, « Modifier » et
+            « Supprimer » écrasaient le pseudo jusqu'à 26 px de large. Une
+            largeur plancher les renvoie à la ligne au lieu de le comprimer. */}
+        <div className="min-w-[9rem] flex-1 break-words">
           <Link
             href={`/membre/${post.handle}`}
             className="font-cond text-[16px] font-semibold tracking-[0.02em] text-ink hover:text-brand"
@@ -47,18 +50,18 @@ export function PostCard({
           </p>
         </div>
         {isMine ? (
-          <EditPost postId={post.id} model={post.model} caption={post.caption} />
-        ) : null}
-        {isMine ? (
-          <form action={removePost}>
-            <input type="hidden" name="id" value={post.id} />
-            <button
-              type="submit"
-              className="inline-flex min-h-[40px] cursor-pointer items-center px-2 font-mono text-[11px] uppercase tracking-[0.05em] text-faint hover:text-brand"
-            >
-              Supprimer
-            </button>
-          </form>
+          <div className="ml-auto flex items-center">
+            <EditPost postId={post.id} model={post.model} caption={post.caption} />
+            <form action={removePost}>
+              <input type="hidden" name="id" value={post.id} />
+              <button
+                type="submit"
+                className="inline-flex min-h-[44px] cursor-pointer items-center px-2 font-mono text-[11px] uppercase tracking-[0.05em] text-faint hover:text-brand"
+              >
+                Supprimer
+              </button>
+            </form>
+          </div>
         ) : null}
       </header>
 

@@ -56,8 +56,13 @@ test("le mouvement se coupe quand le système le demande", async ({ browser }) =
       opacite: carte ? getComputedStyle(carte).opacity : null,
     };
   });
-  // Chrome exprime 0,01 ms en notation scientifique.
-  expect(mesures.animation).toMatch(/^(0\.01ms|1e-05s)$/);
+  // Chacun des trois moteurs écrit cette durée à sa façon (« 0.01ms »,
+  // « 1e-05s », « 0.00001s ») : c'est la valeur qui compte, pas la graphie.
+  expect(mesures.animation).toMatch(/^[\d.e-]+m?s$/);
+  const secondes = mesures.animation!.endsWith("ms")
+    ? Number(mesures.animation!.slice(0, -2)) / 1000
+    : Number(mesures.animation!.slice(0, -1));
+  expect(secondes).toBeLessThan(0.001);
   // Et surtout : le contenu reste lisible, il n'est pas resté transparent.
   expect(mesures.opacite).toBe("1");
   await expect(page.locator("article")).toHaveCount(1);
@@ -144,7 +149,9 @@ test("les cibles tactiles font au moins 24 px", async ({ page }) => {
       [...document.querySelectorAll("a, button, summary")]
         .filter((e) => {
           const r = e.getBoundingClientRect();
-          if (r.width === 0 || r.height === 0) return false;
+          // Un élément masqué visuellement (le lien d'évitement tant qu'il
+          // n'a pas le focus) mesure 1×1 : ce n'est pas une cible tactile.
+          if (r.width <= 1 || r.height <= 1) return false;
           if (getComputedStyle(e).display === "inline") return false;
           return r.height < 24 || r.width < 24;
         })

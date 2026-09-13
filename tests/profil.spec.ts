@@ -84,7 +84,7 @@ test("le profil public montre les publications et les compteurs", async ({ brows
   await visiteur.goto("/membre/exposee");
   const fiche = visiteur.locator("main section").first();
   await expect(fiche).toContainText("1");
-  await expect(fiche).toContainText("likes reçus");
+  await expect(fiche).toContainText("like reçu");
   await expect(visiteur.locator("article")).toHaveCount(1);
   // Sur le profil d'un autre, ni édition ni suppression.
   await expect(visiteur.locator('button:has-text("Modifier mon profil")')).toHaveCount(0);
