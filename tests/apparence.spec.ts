@@ -88,13 +88,18 @@ test("un contenu long est abrégé, pas poussé hors de l'écran", async ({ page
     for (const largeur of [320, 390, 768]) {
       await page.setViewportSize({ width: largeur, height: 900 });
       await page.goto(chemin);
-      // Un texte coupé à l'ellipse a bien un contenu plus large que sa boîte :
-      // ce qui est fautif, c'est une boîte au débordement visible.
       const fautifs = await page.evaluate(() =>
         [...document.querySelectorAll("main *")]
           .filter(
-            (e) =>
-              getComputedStyle(e).overflowX === "visible" && e.scrollWidth > e.clientWidth + 1,
+            (e) => {
+              const style = getComputedStyle(e);
+              // `clientWidth` vaut 0 pour une boîte en ligne — Firefox suit la
+              // spécification à la lettre, Chrome non. Sans cette exclusion,
+              // chaque lien au fil du texte passerait pour un débordement.
+              if (style.display === "inline") return false;
+              // Une boîte qui coupe proprement (ellipse) n'est pas fautive.
+              return style.overflowX === "visible" && e.scrollWidth > e.clientWidth + 1;
+            },
           )
           .map((e) => `${e.tagName.toLowerCase()} « ${(e.textContent ?? "").trim().slice(0, 30)} »`),
       );
@@ -190,8 +195,15 @@ test("une adresse sans espace est coupée, pas poussée hors de l'écran", async
       const fautifs = await page.evaluate(() =>
         [...document.querySelectorAll("main *")]
           .filter(
-            (e) =>
-              getComputedStyle(e).overflowX === "visible" && e.scrollWidth > e.clientWidth + 1,
+            (e) => {
+              const style = getComputedStyle(e);
+              // `clientWidth` vaut 0 pour une boîte en ligne — Firefox suit la
+              // spécification à la lettre, Chrome non. Sans cette exclusion,
+              // chaque lien au fil du texte passerait pour un débordement.
+              if (style.display === "inline") return false;
+              // Une boîte qui coupe proprement (ellipse) n'est pas fautive.
+              return style.overflowX === "visible" && e.scrollWidth > e.clientWidth + 1;
+            },
           )
           .map((e) => `${e.tagName.toLowerCase()} ${e.scrollWidth}>${e.clientWidth}`),
       );
