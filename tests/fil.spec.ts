@@ -214,5 +214,7 @@ test("publier vide le composeur, aperçu de la photo compris", async ({ page }) 
   // restait affiché au-dessus d'un champ fichier déjà vide.
   await expect(page.locator('img[alt="Aperçu de la photo choisie"]')).toHaveCount(0);
   await expect(page.locator("textarea[name=caption]")).toHaveValue("");
-  await expect(page.locator("#photo")).toHaveCount(0);
+  // Le champ reste là, prêt pour la publication suivante : c'est l'aperçu
+  // qui devait partir, pas le formulaire.
+  await expect(page.locator("#photo")).toHaveValue("");
 });
