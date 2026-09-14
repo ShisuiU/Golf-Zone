@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { publishPost, type PostState } from "@/app/actions/post";
 import { PhotoField } from "@/components/profil/PhotoField";
 import { Avatar } from "@/components/feed/Avatar";
@@ -22,9 +22,21 @@ export function Composer({
 }) {
   const [state, formAction, pending] = useActionState(publishPost, EMPTY);
   const [open, setOpen] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Publié, le composeur se replie, comme au premier chargement. Rester
+  // ouvert sur un formulaire vide laisse croire qu'il reste quelque chose
+  // à envoyer.
+  useEffect(() => {
+    const form = formRef.current;
+    if (!form) return;
+    const replier = () => setOpen(false);
+    form.addEventListener("reset", replier);
+    return () => form.removeEventListener("reset", replier);
+  }, []);
 
   return (
-    <form action={formAction} className="surface p-4">
+    <form ref={formRef} action={formAction} className="surface p-4">
       <div className="flex items-start gap-3">
         <Avatar handle={handle} photoId={avatarPhotoId} size={40} />
         <textarea

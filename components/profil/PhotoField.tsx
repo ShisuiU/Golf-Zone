@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const MAX_EDGE = 1600;
 const QUALITY = 0.82;
@@ -66,6 +66,36 @@ export function PhotoField({
   const [preview, setPreview] = useState<string>();
   const [note, setNote] = useState<string>();
   const [busy, setBusy] = useState(false);
+
+  /**
+   * Suivre la remise à zéro du formulaire.
+   *
+   * React vide les champs natifs après une action réussie, l'input fichier
+   * compris. L'aperçu, lui, vit dans l'état de ce composant : sans cela, la
+   * photo restait affichée après publication alors que le champ était déjà
+   * vide, et le formulaire mentait sur ce qu'il contenait.
+   */
+  useEffect(() => {
+    const form = inputRef.current?.form;
+    if (!form) return;
+    const vider = () => {
+      setPreview((ancien) => {
+        if (ancien) URL.revokeObjectURL(ancien);
+        return undefined;
+      });
+      setNote(undefined);
+    };
+    form.addEventListener("reset", vider);
+    return () => form.removeEventListener("reset", vider);
+  }, []);
+
+  // Ne pas laisser fuir la dernière URL d'objet en quittant la page.
+  useEffect(
+    () => () => {
+      if (preview) URL.revokeObjectURL(preview);
+    },
+    [preview],
+  );
 
   async function onPick(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];

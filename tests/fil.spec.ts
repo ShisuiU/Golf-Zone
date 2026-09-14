@@ -197,3 +197,22 @@ test("la racine présente le site à un visiteur et montre le fil à un membre",
   await page.goto("/membres");
   await expect(page.locator('header a[href="/fil"]').first()).toBeVisible();
 });
+
+test("publier vide le composeur, aperçu de la photo compris", async ({ page }) => {
+  await signup(page, "vide");
+  await page.goto("/");
+  await page.click("textarea[name=caption]");
+  await page.fill("textarea[name=caption]", "Une publication avec photo.");
+  await page.setInputFiles("#photo", "tests/fixtures/photo-avec-gps.jpg");
+  await page.waitForFunction(() => !document.body.innerText.includes("Compression en cours"));
+  await expect(page.locator('img[alt="Aperçu de la photo choisie"]')).toBeVisible();
+
+  await page.click('form button:has-text("Publier")');
+  await expect(page.locator("article")).toContainText("Une publication avec photo");
+
+  // React vide les champs natifs ; l'aperçu vit dans l'état de React et
+  // restait affiché au-dessus d'un champ fichier déjà vide.
+  await expect(page.locator('img[alt="Aperçu de la photo choisie"]')).toHaveCount(0);
+  await expect(page.locator("textarea[name=caption]")).toHaveValue("");
+  await expect(page.locator("#photo")).toHaveCount(0);
+});
